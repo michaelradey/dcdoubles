@@ -17,3 +17,7 @@ env/
 *.swp
 .idea/
 .vscode/
+
+# Roster uploads (contain personal contact info)
+upload/
+*.csv

@@ -53,7 +53,8 @@ def rng(rows,col): return f'{col}{rows[0]}:{col}{rows[-1]}'
 
 # ── Excel builder ──────────────────────────────────────────────────────────────
 def build_excel(pools,de_divs,matches,bstruct,combined_info,level_end,de_end_times,warning,counts,
-                title=None,stagger_offsets=None):
+                title=None,stagger_offsets=None,id_to_name=None,roster=None):
+    id_to_name = id_to_name or {}
     wb=Workbook()
     thin=Side(style='thin',color='BBBBBB'); med=Side(style='medium',color='444444')
     tb=Border(left=thin,right=thin,top=thin,bottom=thin); mb=Border(left=med,right=med,top=med,bottom=med)
@@ -198,7 +199,7 @@ def build_excel(pools,de_divs,matches,bstruct,combined_info,level_end,de_end_tim
                     team_bg = _BG.get(team_origin, _BG.get(base_level(team_origin), rbg))
                 team_label = f'{team} [{team_origin}]' if is_combined else team
                 W(ws4,trow,1,team_label,bg=team_bg,fg='000000',brd=tb,sz=9,align='left')
-                W(ws4,trow,2,'',bg='FFFDE7',fg='000000',brd=tb,sz=9,align='left')
+                W(ws4,trow,2,id_to_name.get(team,''),bg='FFFDE7',fg='000000',brd=tb,sz=9,align='left')
                 wp=[wl_f('W',cl,trow) for cl in wl_cols]; lp=[wl_f('L',cl,trow) for cl in wl_cols]
                 W(ws4,trow,3,'=IFERROR('+'+'.join(wp)+',0)',bg=rbg,fg='1E4620',brd=tb,sz=9)
                 W(ws4,trow,4,'=IFERROR('+'+'.join(lp)+',0)',bg=rbg,fg='843C0C',brd=tb,sz=9)
@@ -312,4 +313,24 @@ def build_excel(pools,de_divs,matches,bstruct,combined_info,level_end,de_end_tim
         ws6.row_dimensions[ri].height=8 if not a else 20
         if not a: continue
         for ci,v in enumerate([a,bv],1): W(ws6,ri,ci,v,bold=bold,bg=bg,fg=fg,brd=(thin_b if a else None),sz=10,align='left',wrap=True)
+
+    # Sheet 7: Contacts / Roster
+    if roster:
+        ws7=wb.create_sheet('Contacts'); ws7.sheet_view.showGridLines=False
+        for i,w in enumerate([16,26,10,7,22,16,26,22,16,26],1): ws7.column_dimensions[get_column_letter(i)].width=w
+        ws7.merge_cells('A1:J1'); W(ws7,1,1,'TEAM CONTACTS / ROSTER',bold=True,bg=HDR[0],fg=HDR[1],sz=12,align='left'); ws7.row_dimensions[1].height=26; ws7.row_dimensions[2].height=8
+        hdrs=['Team ID','Team Name','Division','Level','Player 1','Phone 1','Email 1','Player 2','Phone 2','Email 2']
+        for i,h in enumerate(hdrs,1): W(ws7,3,i,h,bold=True,bg=HDR[0],fg=HDR[1],sz=9,brd=tb)
+        ws7.row_dimensions[3].height=20; ws7.freeze_panes='A4'; cr=4
+        for t in roster:
+            p1=t.get('p1_name',''); p2=t.get('p2_name','')
+            b7,f7=lc(base_level(t.get('level','')),'POOL PLAY')
+            vals=[t.get('id',''),t.get('name',''),t.get('division',''),t.get('level',''),
+                  p1,t.get('p1_phone',''),t.get('p1_email',''),
+                  p2,t.get('p2_phone',''),t.get('p2_email','')]
+            for ci,v in enumerate(vals,1):
+                W(ws7,cr,ci,v,bg=(b7 if ci==4 else 'FFFFFF'),fg='000000',brd=tb,sz=9,
+                  align='center' if ci in (3,4) else 'left')
+            ws7.row_dimensions[cr].height=16; cr+=1
+
     return wb

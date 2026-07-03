@@ -9,32 +9,28 @@ body{font-family:'DM Mono',monospace;background:var(--bg);color:var(--txt);min-h
 header{text-align:center;margin-bottom:40px}
 h1{font-family:'Syne',sans-serif;font-size:clamp(2rem,5vw,3.5rem);font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--acc)}
 header p{margin-top:12px;color:var(--mut);font-size:.85rem;letter-spacing:.05em}
-.tabs{display:flex;gap:4px;margin-bottom:24px;background:var(--sur);border:1px solid var(--brd);border-radius:12px;padding:4px;width:100%;max-width:580px}
+.tabs{display:flex;gap:4px;margin-bottom:24px;background:var(--sur);border:1px solid var(--brd);border-radius:12px;padding:4px;width:100%;max-width:620px}
 .tab{flex:1;padding:10px;text-align:center;font-family:'Syne',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border-radius:8px;cursor:pointer;border:none;background:transparent;color:var(--mut);transition:all .2s}
 .tab.active{background:var(--acc);color:#0e0f11}
-.card{background:var(--sur);border:1px solid var(--brd);border-radius:16px;padding:36px;width:100%;max-width:580px}
+.card{background:var(--sur);border:1px solid var(--brd);border-radius:16px;padding:36px;width:100%;max-width:620px}
 .panel{display:none}.panel.active{display:block}
-.card h2{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);margin-bottom:28px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px}
-.sec-hdr{font-family:'Syne',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:8px 0 10px;grid-column:1/-1;border-bottom:1px solid var(--brd);margin-bottom:4px}
-.sec-hdr.women{color:var(--WC)}.sec-hdr.men{color:var(--MC)}
-.fld{display:flex;flex-direction:column;gap:8px}
-.fld label{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;font-weight:500}
-.fld label span{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
-.lB{color:var(--B)}.lBB{color:var(--BB)}.lA{color:var(--A)}.lO{color:var(--Op)}
-.lWB{color:#86efac}.lWBB{color:#34d399}.lWA{color:#fdba74}.lWO{color:var(--WC)}
-.lMB{color:#60a5fa}.lMBB{color:#38bdf8}.lMA{color:#fbbf24}.lMO{color:var(--MC)}
-.dB{background:var(--B)}.dBB{background:var(--BB)}.dA{background:var(--A)}.dO{background:var(--Op)}
-.dWB{background:#86efac}.dWBB{background:#34d399}.dWA{background:#fdba74}.dWO{background:var(--WC)}
-.dMB{background:#60a5fa}.dMBB{background:#38bdf8}.dMA{background:#fbbf24}.dMO{background:var(--MC)}
-input[type=number]{background:var(--bg);border:1.5px solid var(--brd);border-radius:8px;color:var(--txt);font-family:'DM Mono',monospace;font-size:1.5rem;font-weight:500;text-align:center;padding:14px 8px;outline:none;transition:border-color .2s;width:100%}
-input[type=number]:focus{border-color:var(--acc)}input::-webkit-inner-spin-button{-webkit-appearance:none}
-.rules{background:var(--bg);border:1px solid var(--brd);border-radius:10px;padding:16px 18px;margin-bottom:28px;font-size:.78rem;color:var(--mut);line-height:1.9}
-.rules strong{color:var(--txt)}
+.card h2{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);margin-bottom:8px}
+.card .lead{font-size:.78rem;color:var(--mut);margin-bottom:20px;line-height:1.6}
+.filerow{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.filerow input[type=file]{font-family:'DM Mono',monospace;font-size:.75rem;color:var(--mut);max-width:100%}
+.filerow input[type=file]::file-selector-button{font-family:'Syne',sans-serif;font-weight:700;font-size:.72rem;letter-spacing:.05em;text-transform:uppercase;background:var(--brd);color:var(--txt);border:none;border-radius:7px;padding:8px 12px;margin-right:10px;cursor:pointer}
+.filerow .or{font-size:.72rem;color:var(--mut)}
+.csv-area{width:100%;min-height:150px;background:var(--bg);border:1.5px solid var(--brd);border-radius:8px;color:var(--txt);font-family:'DM Mono',monospace;font-size:.78rem;line-height:1.5;padding:12px;outline:none;resize:vertical;margin-bottom:12px;white-space:pre;overflow-x:auto}
+.csv-area:focus{border-color:var(--acc)}
+.csv-area::placeholder{color:#4a4f57}
+.fmt{background:var(--bg);border:1px solid var(--brd);border-radius:10px;padding:14px 16px;margin-bottom:24px;font-size:.74rem;color:var(--mut);line-height:1.9}
+.fmt code{color:var(--txt);font-size:.72rem}
+.fmt strong{color:var(--txt)}
+.fmt .pill{display:inline-block;border-radius:5px;padding:1px 7px;font-weight:500;font-size:.7rem}
 button{width:100%;background:var(--acc);color:#0e0f11;border:none;border-radius:10px;font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;letter-spacing:.05em;padding:18px;cursor:pointer;transition:opacity .2s,transform .1s}
 button:hover{opacity:.9}button:active{transform:scale(.98)}button:disabled{opacity:.4;cursor:not-allowed}
-#st,#st2{margin-top:20px;text-align:center;font-size:.82rem;color:var(--mut);min-height:20px}
-#st.err,#st2.err{color:var(--err)}#st.ok,#st2.ok{color:var(--acc2)}
+#st,#st2,#st3{margin-top:20px;text-align:center;font-size:.82rem;color:var(--mut);min-height:20px}
+.err{color:var(--err)!important}.ok{color:var(--acc2)!important}
 .warn{margin-top:16px;background:#2d1f00;border:1px solid var(--wrn);border-radius:10px;padding:14px 16px;font-size:.82rem;color:var(--wrn);line-height:1.6}
 .sum{display:none;margin-top:24px;background:var(--bg);border:1px solid var(--brd);border-radius:12px;padding:24px}.sum.show{display:block}
 .sum h3{font-family:'Syne',sans-serif;font-size:.85rem;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);margin-bottom:16px}
@@ -60,76 +56,51 @@ footer{margin-top:60px;text-align:center;font-size:.75rem;color:var(--mut)}
 
 <!-- ── CO-ED PANEL ── -->
 <div id="panel-coed" class="panel active">
-<h2>Team Counts</h2><form id="frm">
-<div class="grid">
-<div class="fld"><label class="lB"><span class="dB"></span>B Division</label><input type="number" name="b" min="0" max="120" value="12" required></div>
-<div class="fld"><label class="lBB"><span class="dBB"></span>BB Division</label><input type="number" name="bb" min="0" max="120" value="18" required></div>
-<div class="fld"><label class="lA"><span class="dA"></span>A Division</label><input type="number" name="a" min="0" max="120" value="10" required></div>
-<div class="fld"><label class="lO"><span class="dO"></span>Open Division</label><input type="number" name="open" min="0" max="120" value="2" required></div>
-</div>
-<div class="rules">
-<strong>Pool play preferred</strong> (max 5/pool) &rarr; <strong style="color:var(--DE)">double elimination</strong> only if 9+ courts would be needed<br>
-<strong>2&ndash;5 teams</strong> in Open or BB &rarr; combined with A pools (separate brackets after)<br>
-<strong>4 separate brackets</strong> always &bull; Max 9 simultaneous pools &bull; All start at <strong>7:20 AM</strong><br>
-Top 2/pool qualify &bull; top 3/pool if time allows &bull; Hard cutoff: <strong>8:30 PM</strong>
-</div>
-<button type="submit" id="btn">GENERATE &amp; DOWNLOAD</button></form>
+<h2>Team Roster (CSV)</h2>
+<p class="lead">Upload or paste the registration export. Only <strong style="color:var(--Op)">Coed</strong> teams are used — Men/Women rows are ignored.</p>
+<form id="frm">
+  <div class="filerow"><input type="file" id="file" accept=".csv,text/csv"><span class="or">or paste below</span></div>
+  <textarea id="csv" class="csv-area" spellcheck="false" placeholder="Division,Level,Full Name (Player 1),Full Name (Player 2),Phone Number Player 1,Email Address Player 1,Phone Number Player 2,Email Address Player 2&#10;Coed,BB,Alex Kim,Sam Lee,555-1000,alex@x.com,555-1001,sam@x.com"></textarea>
+  <div class="fmt">
+    <strong>Required header columns:</strong> <code>Division, Level, Full Name (Player 1), Full Name (Player 2)</code><br>
+    Optional: <code>Phone Number / Email Address (Player 1/2)</code> &bull; extra columns (payment, dates) are ignored<br>
+    level = <strong>B / BB / A / Open</strong> &bull; first row must be the header
+  </div>
+  <button type="submit" id="btn">GENERATE &amp; DOWNLOAD</button></form>
 <div id="st"></div><div id="wb" class="warn" style="display:none"></div>
 <div class="sum" id="sum"><h3>Summary</h3><div id="stats"></div><div class="bg" id="brkt"></div><div class="pl" id="pls"></div></div>
 </div>
 
 <!-- ── MEN'S / WOMEN'S PANEL ── -->
 <div id="panel-mw" class="panel">
-<h2>Team Counts</h2><form id="frm2">
-<div class="grid">
-  <div class="sec-hdr women">&#9792; Women's Divisions</div>
-  <div class="fld"><label class="lWB"><span class="dWB"></span>W&nbsp;B Division</label><input type="number" name="w_b" min="0" max="120" value="10"></div>
-  <div class="fld"><label class="lWBB"><span class="dWBB"></span>W&nbsp;BB Division</label><input type="number" name="w_bb" min="0" max="120" value="14"></div>
-  <div class="fld"><label class="lWA"><span class="dWA"></span>W&nbsp;A Division</label><input type="number" name="w_a" min="0" max="120" value="10"></div>
-  <div class="fld"><label class="lWO"><span class="dWO"></span>W&nbsp;Open Division</label><input type="number" name="w_open" min="0" max="120" value="2"></div>
-  <div class="sec-hdr men">&#9794; Men's Divisions</div>
-  <div class="fld"><label class="lMB"><span class="dMB"></span>M&nbsp;B Division</label><input type="number" name="m_b" min="0" max="120" value="12"></div>
-  <div class="fld"><label class="lMBB"><span class="dMBB"></span>M&nbsp;BB Division</label><input type="number" name="m_bb" min="0" max="120" value="16"></div>
-  <div class="fld"><label class="lMA"><span class="dMA"></span>M&nbsp;A Division</label><input type="number" name="m_a" min="0" max="120" value="12"></div>
-  <div class="fld"><label class="lMO"><span class="dMO"></span>M&nbsp;Open Division</label><input type="number" name="m_open" min="0" max="120" value="3"></div>
-</div>
-<div class="rules">
-<strong>9 courts shared</strong> across all 8 divisions simultaneously<br>
-<strong>Staggered starts:</strong> largest divisions at 7:20 AM &mdash; others at 8:05, 8:50, or 9:35 AM &mdash; all start by <strong>10:00 AM</strong><br>
-<strong>Pool play preferred</strong> (max 5/pool) &rarr; <strong style="color:var(--DE)">DE</strong> only if courts overflow &bull; combining within gender only<br>
-<strong>A and Open always separate</strong> in M/W (skill gap is wider than co-ed) &bull; tiny BB (&le;5) may still combine with A<br>
-Max 9 pools active at any time &bull; Hard cutoff: <strong>8:30 PM</strong>
-</div>
-<button type="submit" id="btn2">GENERATE M/W SCHEDULE</button></form>
+<h2>Team Roster (CSV)</h2>
+<p class="lead">Upload or paste the registration export. Only <strong style="color:var(--WC)">Women</strong> and <strong style="color:var(--MC)">Men</strong> teams are used — Coed rows are ignored.</p>
+<form id="frm2">
+  <div class="filerow"><input type="file" id="file2" accept=".csv,text/csv"><span class="or">or paste below</span></div>
+  <textarea id="csv2" class="csv-area" spellcheck="false" placeholder="Division,Level,Full Name (Player 1),Full Name (Player 2),Phone Number Player 1,Email Address Player 1,Phone Number Player 2,Email Address Player 2&#10;Women,A,Jo Ng,Pat Rao,555-2000,jo@x.com,555-2001,pat@x.com&#10;Men,BB,Max Roe,Ted Vo,555-3000,max@x.com,555-3001,ted@x.com"></textarea>
+  <div class="fmt">
+    <strong>Required header columns:</strong> <code>Division, Level, Full Name (Player 1), Full Name (Player 2)</code><br>
+    Optional: <code>Phone Number / Email Address (Player 1/2)</code> &bull; extra columns (payment, dates) are ignored<br>
+    level = <strong>B / BB / A / Open</strong> &bull; first row must be the header
+  </div>
+  <button type="submit" id="btn2">GENERATE M/W SCHEDULE</button></form>
 <div id="st2"></div><div id="wb2" class="warn" style="display:none"></div>
 <div class="sum" id="sum2"><h3>Summary</h3><div id="stats2"></div><div class="bg" id="brkt2"></div><div id="stag2"></div></div>
 </div>
 
-
 <!-- ── BIG DE M/W PANEL ── -->
 <div id="panel-bde" class="panel">
-<h2>Big DE Mode: Large Men's BB Field</h2>
+<h2>Big DE Mode &mdash; Team Roster (CSV)</h2>
+<p class="lead">Same registration export (Men/Women rows; Coed ignored). If Men's BB is large it runs as a full double-elimination on all 9 courts, and the other divisions fill in as courts free up.</p>
 <form id="frm3">
-<div class="grid">
-  <div class="sec-hdr women">&#9792; Women's Divisions</div>
-  <div class="fld"><label class="lWB"><span class="dWB"></span>W&nbsp;B Division</label><input type="number" name="w_b" min="0" max="120" value="3"></div>
-  <div class="fld"><label class="lWBB"><span class="dWBB"></span>W&nbsp;BB Division</label><input type="number" name="w_bb" min="0" max="120" value="11"></div>
-  <div class="fld"><label class="lWA"><span class="dWA"></span>W&nbsp;A Division</label><input type="number" name="w_a" min="0" max="120" value="3"></div>
-  <div class="fld"><label class="lWO"><span class="dWO"></span>W&nbsp;Open Division</label><input type="number" name="w_open" min="0" max="120" value="0"></div>
-  <div class="sec-hdr men">&#9794; Men's Divisions</div>
-  <div class="fld"><label class="lMB"><span class="dMB"></span>M&nbsp;B Division</label><input type="number" name="m_b" min="0" max="120" value="5"></div>
-  <div class="fld"><label class="lMBB"><span class="dMBB"></span>M&nbsp;BB Division <em style="color:var(--DE);font-size:.7em">&#9655;DE</em></label><input type="number" name="m_bb" min="0" max="120" value="22"></div>
-  <div class="fld"><label class="lMA"><span class="dMA"></span>M&nbsp;A Division</label><input type="number" name="m_a" min="0" max="120" value="5"></div>
-  <div class="fld"><label class="lMO"><span class="dMO"></span>M&nbsp;Open Division</label><input type="number" name="m_open" min="0" max="120" value="4"></div>
-</div>
-<div class="rules">
-<strong style="color:var(--DE)">Men's BB &rarr; full DE bracket</strong> on all 9 courts from 7:20 AM<br>
-<strong>3 intro rounds at 40 min</strong> (WB R1&ndash;R3&thinsp;+&thinsp;LB R1&ndash;R2) &rarr; subsequent DE rounds at 30 min<br>
-<strong>Other divisions</strong> start on freed courts as the bracket narrows<br>
-Priority: W&nbsp;BB+A (multi-pool) &rarr; M&nbsp;A, M&nbsp;B &rarr; M&nbsp;Open, W&nbsp;B<br>
-Target: W&nbsp;BB+A, M&nbsp;A, M&nbsp;B all start by <strong>10:00 AM</strong> &bull; cutoff <strong>8:30 PM</strong>
-</div>
-<button type="submit" id="btn3">GENERATE BIG DE SCHEDULE</button></form>
+  <div class="filerow"><input type="file" id="file3" accept=".csv,text/csv"><span class="or">or paste below</span></div>
+  <textarea id="csv3" class="csv-area" spellcheck="false" placeholder="Division,Level,Full Name (Player 1),Full Name (Player 2),Phone Number Player 1,Email Address Player 1,Phone Number Player 2,Email Address Player 2&#10;Men,BB,Max Roe,Ted Vo,555-3000,max@x.com,555-3001,ted@x.com"></textarea>
+  <div class="fmt">
+    <strong>Required header columns:</strong> <code>Division, Level, Full Name (Player 1), Full Name (Player 2)</code><br>
+    Optional: <code>Phone Number / Email Address (Player 1/2)</code> &bull; extra columns (payment, dates) are ignored<br>
+    level = <strong>B / BB / A / Open</strong> &bull; a large <strong style="color:var(--DE)">Men BB</strong> field triggers DE mode
+  </div>
+  <button type="submit" id="btn3">GENERATE BIG DE SCHEDULE</button></form>
 <div id="st3"></div><div id="wb3" class="warn" style="display:none"></div>
 <div class="sum" id="sum3"><h3>Summary</h3><div id="stats3"></div><div class="bg" id="brkt3"></div></div>
 </div>
@@ -137,7 +108,6 @@ Target: W&nbsp;BB+A, M&nbsp;A, M&nbsp;B all start by <strong>10:00 AM</strong> &
 </div><!-- /.card -->
 <footer>generates a formatted .xlsx &mdash; open in Excel or Google Sheets<br><a href="/bracket" style="color:var(--acc2);text-decoration:none">&rarr; interactive double-elimination bracket</a></footer>
 <script>
-// ── Tab switching ────────────────────────────────────────────────────────────
 function switchTab(id,btn){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
@@ -145,109 +115,96 @@ function switchTab(id,btn){
   document.getElementById('panel-'+id).classList.add('active');
 }
 
-// ── Co-ed form ───────────────────────────────────────────────────────────────
-const frm=document.getElementById('frm'),btn=document.getElementById('btn'),st=document.getElementById('st'),sumDiv=document.getElementById('sum'),wb=document.getElementById('wb');
-frm.addEventListener('submit',async e=>{e.preventDefault();btn.disabled=true;btn.innerHTML='<span class="sp"></span>GENERATING…';st.className='';st.textContent='Building…';sumDiv.classList.remove('show');wb.style.display='none';
-try{const r=await fetch('/generate',{method:'POST',body:new FormData(frm)});
-if(r.ok&&r.headers.get('content-type').includes('spreadsheet')){const u=URL.createObjectURL(await r.blob()),a=document.createElement('a');a.href=u;a.download='volleyball_schedule.xlsx';a.click();URL.revokeObjectURL(u);
-const d=await(await fetch('/summary',{method:'POST',body:new FormData(frm)})).json();showSummary(d);st.className='ok';st.textContent='✓ Downloaded!';}
-else{const txt=await r.text();st.className='err';st.textContent='✗ '+(txt||'Error');}}
-catch(ex){st.className='err';st.textContent='✗ '+ex.message;}finally{btn.disabled=false;btn.textContent='GENERATE & DOWNLOAD';}});
+// Read a chosen file into its paste box so it's visible and submitted as CSV.
+function wireFile(fileId,csvId){
+  const f=document.getElementById(fileId);
+  f.addEventListener('change',()=>{
+    const file=f.files[0]; if(!file) return;
+    const rd=new FileReader();
+    rd.onload=()=>{ document.getElementById(csvId).value=rd.result; };
+    rd.readAsText(file);
+  });
+}
+wireFile('file','csv'); wireFile('file2','csv2'); wireFile('file3','csv3');
 
-function showSummary(d){const C={B:'#86efac',BB:'#7dd3fc',A:'#fdba74',Open:'#f9a8d4'};
-if(d.warning){wb.textContent=d.warning;wb.style.display='block';}
-document.getElementById('stats').innerHTML=[['Pools',d.pools],['DE Divisions',(d.de_divisions||[]).join(', ')||'None'],
-['Pool/DE Matches',d.pool_matches+(d.de_matches||0)],['Bracket Matches',d.brkt_matches],
-['Total',d.pool_matches+d.brkt_matches+(d.de_matches||0)],['Ends',d.ends]]
-.map(([k,v])=>`<div class="row"><span>${k}</span><span class="v">${v}</span></div>`).join('');
-const le=d.level_pool_end||{};
-document.getElementById('brkt').innerHTML=Object.entries(d.bracket_info||{}).map(([lvl,bs])=>{
-const primary=lvl.split('+')[0];const col=C[primary]||'#aaa';
-const pi=bs.n_playin>0?` · ${bs.n_playin} play-in${bs.n_playin>1?'s':''}`:' · no play-ins';
-return`<div class="br"><b style="color:${col}">${primary}${lvl.includes('+')?' (combined)':''}</b>${le[lvl]?' &mdash; pool ends '+le[lvl]:''}<br><span class="d">${bs.total} advance (${bs.format})${pi} · ${bs.n_direct} direct</span></div>`;}).join('');
-(d.de_divisions||[]).forEach(lvl=>{const col=C[lvl]||'#d8b4fe';document.getElementById('brkt').innerHTML+=`<div class="br"><b style="color:${col}">${lvl} (Double Elimination)</b><br><span class="d">Random seeding · groups · Top 2 per group to combined championship</span></div>`;});
-document.getElementById('pls').innerHTML=(d.pool_list||[]).map(([lvl,pid,sz,n])=>{const col=C[lvl.split('+')[0]]||'#aaa';return`<div class="pc" style="border-color:${col}22;background:${col}11"><div class="pn" style="color:${col}">${lvl.split('+')[0]} Pool ${pid}</div><div class="pd">${n} teams · size ${sz}</div></div>`;}).join('');
-sumDiv.classList.add('show');}
+// Generic submit: POST the CSV, download the xlsx, then fetch + render summary.
+function wireForm(o){
+  const form=document.getElementById(o.form), btn=document.getElementById(o.btn),
+        st=document.getElementById(o.st), sum=document.getElementById(o.sum),
+        wb=document.getElementById(o.wb);
+  form.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const csv=document.getElementById(o.csv).value.trim();
+    if(!csv){ st.className='err'; st.textContent='✗ Add a CSV (upload or paste) first.'; return; }
+    btn.disabled=true; const label=btn.textContent;
+    btn.innerHTML='<span class="sp"></span>GENERATING…';
+    st.className=''; st.textContent='Building…'; sum.classList.remove('show'); wb.style.display='none';
+    try{
+      const body=()=>{ const fd=new FormData(); fd.append('csv',csv); return fd; };
+      const r=await fetch(o.gen,{method:'POST',body:body()});
+      if(r.ok && (r.headers.get('content-type')||'').includes('spreadsheet')){
+        const u=URL.createObjectURL(await r.blob()), a=document.createElement('a');
+        a.href=u; a.download=o.file; a.click(); URL.revokeObjectURL(u);
+        const d=await (await fetch(o.sumUrl,{method:'POST',body:body()})).json();
+        o.render(d); st.className='ok'; st.textContent='✓ Downloaded!';
+      } else {
+        st.className='err'; st.textContent='✗ '+((await r.text())||'Error');
+      }
+    }catch(ex){ st.className='err'; st.textContent='✗ '+ex.message; }
+    finally{ btn.disabled=false; btn.textContent=label; }
+  });
+}
 
-// ── Men's / Women's form ─────────────────────────────────────────────────────
-const frm2=document.getElementById('frm2'),btn2=document.getElementById('btn2'),st2=document.getElementById('st2'),sum2=document.getElementById('sum2'),wb2=document.getElementById('wb2');
-frm2.addEventListener('submit',async e=>{
-  e.preventDefault();btn2.disabled=true;btn2.innerHTML='<span class="sp"></span>GENERATING…';
-  st2.className='';st2.textContent='Building schedule for 8 divisions…';sum2.classList.remove('show');wb2.style.display='none';
-  try{
-    const r=await fetch('/generate-mw',{method:'POST',body:new FormData(frm2)});
-    if(r.ok&&r.headers.get('content-type').includes('spreadsheet')){
-      const u=URL.createObjectURL(await r.blob()),a=document.createElement('a');
-      a.href=u;a.download='mw_tournament.xlsx';a.click();URL.revokeObjectURL(u);
-      const d=await(await fetch('/summary-mw',{method:'POST',body:new FormData(frm2)})).json();
-      showMWSummary(d);st2.className='ok';st2.textContent='✓ Downloaded!';
-    } else {
-      let msg='Error';
-      try{const j=await r.json();msg=j.error||msg;}catch{msg=await r.text();}
-      st2.className='err';st2.textContent='✗ '+msg;
-    }
-  } catch(ex){st2.className='err';st2.textContent='✗ '+ex.message;}
-  finally{btn2.disabled=false;btn2.textContent='GENERATE M/W SCHEDULE';}
-});
+const C={B:'#86efac',BB:'#7dd3fc',A:'#fdba74',Open:'#f9a8d4'};
+
+function showSummary(d){
+  const wb=document.getElementById('wb');
+  if(d.warning){ wb.textContent=d.warning; wb.style.display='block'; }
+  document.getElementById('stats').innerHTML=[['Pools',d.pools],['DE Divisions',(d.de_divisions||[]).join(', ')||'None'],
+    ['Pool/DE Matches',d.pool_matches+(d.de_matches||0)],['Bracket Matches',d.brkt_matches],
+    ['Total',d.pool_matches+d.brkt_matches+(d.de_matches||0)],['Ends',d.ends]]
+    .map(([k,v])=>`<div class="row"><span>${k}</span><span class="v">${v}</span></div>`).join('');
+  const le=d.level_pool_end||{};
+  document.getElementById('brkt').innerHTML=Object.entries(d.bracket_info||{}).map(([lvl,bs])=>{
+    const primary=lvl.split('+')[0], col=C[primary]||'#aaa';
+    const pi=bs.n_playin>0?` · ${bs.n_playin} play-in${bs.n_playin>1?'s':''}`:' · no play-ins';
+    return`<div class="br"><b style="color:${col}">${primary}${lvl.includes('+')?' (combined)':''}</b>${le[lvl]?' &mdash; pool ends '+le[lvl]:''}<br><span class="d">${bs.total} advance (${bs.format})${pi} · ${bs.n_direct} direct</span></div>`;}).join('');
+  (d.de_divisions||[]).forEach(lvl=>{const col=C[lvl]||'#d8b4fe';document.getElementById('brkt').innerHTML+=`<div class="br"><b style="color:${col}">${lvl} (Double Elimination)</b><br><span class="d">Random seeding · groups · Top 2 per group to combined championship</span></div>`;});
+  document.getElementById('pls').innerHTML=(d.pool_list||[]).map(([lvl,pid,sz,n])=>{const col=C[lvl.split('+')[0]]||'#aaa';return`<div class="pc" style="border-color:${col}22;background:${col}11"><div class="pn" style="color:${col}">${lvl.split('+')[0]} Pool ${pid}</div><div class="pd">${n} teams · size ${sz}</div></div>`;}).join('');
+  document.getElementById('sum').classList.add('show');
+}
 
 function showMWSummary(d){
-  const WC='#f9a8d4',MC='#93c5fd';
-  if(d.warning){wb2.textContent=d.warning;wb2.style.display='block';}
-  const stats=document.getElementById('stats2');
-  stats.innerHTML=[
-    ['Total Pools',d.pools],
-    ['DE Divisions',(d.de_divisions||[]).join(', ')||'None'],
-    ['Pool/DE Matches',d.pool_matches+(d.de_matches||0)],
-    ['Bracket Matches',d.brkt_matches],
-    ['Total Matches',d.pool_matches+d.brkt_matches+(d.de_matches||0)],
-    ['Est. End',d.ends]
+  const wb2=document.getElementById('wb2');
+  if(d.warning){ wb2.textContent=d.warning; wb2.style.display='block'; }
+  document.getElementById('stats2').innerHTML=[
+    ['Total Pools',d.pools],['DE Divisions',(d.de_divisions||[]).join(', ')||'None'],
+    ['Pool/DE Matches',d.pool_matches+(d.de_matches||0)],['Bracket Matches',d.brkt_matches],
+    ['Total Matches',d.pool_matches+d.brkt_matches+(d.de_matches||0)],['Est. End',d.ends]
   ].map(([k,v])=>`<div class="row"><span>${k}</span><span class="v">${v}</span></div>`).join('');
-  const stag=d.stagger||{};
-  const stagEl=document.getElementById('stag2');
+  const stag=d.stagger||{}, stagEl=document.getElementById('stag2');
   if(Object.keys(stag).length>0){
     stagEl.innerHTML='<div style="margin-top:14px;font-size:.78rem;color:var(--mut);margin-bottom:6px;letter-spacing:.06em;">STAGGERED STARTS</div>'+
       Object.entries(stag).map(([l,t])=>`<div class="row"><span>${l}</span><span class="v stag-tag">${t}</span></div>`).join('');
-  } else {
-    stagEl.innerHTML='<div class="row"><span>Stagger</span><span class="v">All start 7:20 AM</span></div>';
-  }
-  sum2.classList.add('show');
+  } else { stagEl.innerHTML='<div class="row"><span>Stagger</span><span class="v">All start 7:20 AM</span></div>'; }
+  document.getElementById('sum2').classList.add('show');
 }
-
-// ── Big DE M/W form ─────────────────────────────────────────────────────────
-const frm3=document.getElementById('frm3'),btn3=document.getElementById('btn3'),
-      st3=document.getElementById('st3'),sum3=document.getElementById('sum3'),
-      wb3=document.getElementById('wb3');
-frm3.addEventListener('submit',async e=>{
-  e.preventDefault();btn3.disabled=true;btn3.innerHTML='<span class="sp"></span>GENERATING…';
-  st3.className='';st3.textContent='Scheduling Men’s BB DE + all other divisions…';
-  sum3.classList.remove('show');wb3.style.display='none';
-  try{
-    const r=await fetch('/generate-bigde-mw',{method:'POST',body:new FormData(frm3)});
-    if(r.ok&&r.headers.get('content-type').includes('spreadsheet')){
-      const u=URL.createObjectURL(await r.blob()),a=document.createElement('a');
-      a.href=u;a.download='bigde_tournament.xlsx';a.click();URL.revokeObjectURL(u);
-      const d=await(await fetch('/summary-bigde-mw',{method:'POST',body:new FormData(frm3)})).json();
-      showBDESummary(d);st3.className='ok';st3.textContent='✓ Downloaded!';
-    } else {
-      let msg='Error';
-      try{const j=await r.json();msg=j.error||msg;}catch{msg=await r.text();}
-      st3.className='err';st3.textContent='✗ '+msg;
-    }
-  } catch(ex){st3.className='err';st3.textContent='✗ '+ex.message;}
-  finally{btn3.disabled=false;btn3.textContent='GENERATE BIG DE SCHEDULE';}
-});
 
 function showBDESummary(d){
-  if(d.warning){wb3.textContent=d.warning;wb3.style.display='block';}
+  const wb3=document.getElementById('wb3');
+  if(d.warning){ wb3.textContent=d.warning; wb3.style.display='block'; }
   document.getElementById('stats3').innerHTML=[
-    ['M_BB DE done',d.de_ends||'—'],
-    ['Other pools',d.pools],
-    ['DE matches',d.de_matches],
-    ['Pool matches',d.pool_matches],
-    ['Bracket matches',d.brkt_matches],
-    ['Total matches',d.de_matches+d.pool_matches+d.brkt_matches],
-    ['Est. end',d.ends]
+    ['M_BB DE done',d.de_ends||'—'],['Other pools',d.pools],['DE matches',d.de_matches],
+    ['Pool matches',d.pool_matches],['Bracket matches',d.brkt_matches],
+    ['Total matches',d.de_matches+d.pool_matches+d.brkt_matches],['Est. end',d.ends]
   ].map(([k,v])=>`<div class="row"><span>${k}</span><span class="v">${v}</span></div>`).join('');
-  sum3.classList.add('show');
+  document.getElementById('sum3').classList.add('show');
 }
+
+wireForm({form:'frm', btn:'btn', st:'st', sum:'sum', wb:'wb', csv:'csv',
+  gen:'/generate', sumUrl:'/summary', file:'volleyball_schedule.xlsx', render:showSummary});
+wireForm({form:'frm2', btn:'btn2', st:'st2', sum:'sum2', wb:'wb2', csv:'csv2',
+  gen:'/generate-mw', sumUrl:'/summary-mw', file:'mw_tournament.xlsx', render:showMWSummary});
+wireForm({form:'frm3', btn:'btn3', st:'st3', sum:'sum3', wb:'wb3', csv:'csv3',
+  gen:'/generate-bigde-mw', sumUrl:'/summary-bigde-mw', file:'bigde_tournament.xlsx', render:showBDESummary});
 </script></body></html>

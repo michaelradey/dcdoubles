@@ -101,9 +101,55 @@ def _run_de_brackets(de_plans, courts_obj):
     return de_matches, de_end_times, None
 
 
+# ── Real-team-name plumbing ──────────────────────────────────────────────────
+# The engine works with synthetic identifiers ("B T1", "W_A T2", "M_BB Seed 3").
+# These helpers map those identifiers to real "Player / Player" names so the
+# schedule and Team Tracker show actual teams. The identifier is still shown in
+# the tracker's Team ID column. Team order within a (prefix, level) matches the
+# CSV order, exactly as the engine assigns "T1, T2, ...".
+def _assign_pool_ids(rosters, prefix='', skip=()):
+    """Assign pool identifiers to each team and return {identifier: name}.
+    Mutates each team dict with an 'id' key."""
+    id_to_name = {}
+    for lvl, teams in rosters.items():
+        if lvl in skip:
+            continue
+        for i, t in enumerate(teams):
+            tid = f'{prefix}{lvl} T{i+1}'
+            t['id'] = tid
+            id_to_name[tid] = t['name']
+    return id_to_name
+
+
+def _assign_seed_ids(teams, level_prefix):
+    """Assign DE seed identifiers ('{level_prefix} Seed N') and return the map."""
+    id_to_name = {}
+    for i, t in enumerate(teams):
+        tid = f'{level_prefix} Seed {i+1}'
+        t['id'] = tid
+        id_to_name[tid] = t['name']
+    return id_to_name
+
+
+def _apply_names(matches, id_to_name):
+    """Replace identifier team slots with real names (in place)."""
+    for m in matches:
+        if m.get('team_a') in id_to_name:
+            m['team_a'] = id_to_name[m['team_a']]
+        if m.get('team_b') in id_to_name:
+            m['team_b'] = id_to_name[m['team_b']]
+
+
+def _flatten(rosters):
+    """All teams across levels, in level then CSV order."""
+    return [t for lvl in LEVELS for t in rosters.get(lvl, [])]
+
+
 # ── Co-ed tournament ─────────────────────────────────────────────────────────
-def generate_schedule(b, bb, a, opn):
-    counts = {'B': b, 'BB': bb, 'A': a, 'Open': opn}
+def generate_schedule(rosters):
+    id_to_name = _assign_pool_ids(rosters)
+    roster_all = _flatten(rosters)
+    counts = {lvl: len(rosters.get(lvl, [])) for lvl in ('B', 'BB', 'A', 'Open')}
     pools, de_divs, combined_info, err = build_pools(counts)
     if err: return None, None, err
     if not pools and not de_divs:
@@ -160,8 +206,10 @@ def generate_schedule(b, bb, a, opn):
     if err: return None, None, err
 
     combined = _label_times(de_matches + pool_matches + brkt)
+    _apply_names(combined, id_to_name)
     wb_obj = build_excel(pools, de_divs, combined, bstruct, combined_info,
-                         level_end, de_end_times, warning, counts)
+                         level_end, de_end_times, warning, counts,
+                         id_to_name=id_to_name, roster=roster_all)
     buf = io.BytesIO(); wb_obj.save(buf); buf.seek(0)
 
     final_end = max((m['end'] for m in combined), default=0)
@@ -242,7 +290,7 @@ def schedule_pools_freed_courts(sorted_pools, court_ivs):
     return pool_matches, level_end, courts_obj
 
 
-def generate_bigde_mw_schedule(wb, wbb, wa, wopen, mb, mbb, ma, mopen):
+def generate_bigde_mw_schedule(rosters_w, rosters_m):
     """
     M/W scheduler for a large Men's BB field that cannot fit in pool play.
 
@@ -257,8 +305,20 @@ def generate_bigde_mw_schedule(wb, wbb, wa, wopen, mb, mbb, ma, mopen):
 
     Target: major divisions (W_BB+A, M_A, M_B) all start by 10:00 AM.
     """
+    mbb = len(rosters_m.get('BB', []))
     if mbb < 1:
-        return generate_mw_schedule(wb, wbb, wa, wopen, mb, mbb, ma, mopen)
+        return generate_mw_schedule(rosters_w, rosters_m)
+
+    wb = len(rosters_w.get('B', [])); wbb = len(rosters_w.get('BB', []))
+    wa = len(rosters_w.get('A', [])); wopen = len(rosters_w.get('Open', []))
+    mb = len(rosters_m.get('B', [])); ma = len(rosters_m.get('A', []))
+    mopen = len(rosters_m.get('Open', []))
+
+    # Men's BB runs as DE with "Seed N" ids; everything else uses pool ids.
+    id_to_name = _assign_pool_ids(rosters_w, 'W_')
+    id_to_name.update(_assign_pool_ids(rosters_m, 'M_', skip=('BB',)))
+    id_to_name.update(_assign_seed_ids(rosters_m.get('BB', []), 'M_BB'))
+    roster_all = _flatten(rosters_w) + _flatten(rosters_m)
 
     # ── 1. Build & schedule Men's BB DE on all 9 courts ──────────────────
     bb_teams = [f'M_BB Seed {i+1}' for i in range(mbb)]
@@ -347,6 +407,7 @@ def generate_bigde_mw_schedule(wb, wbb, wa, wopen, mb, mbb, ma, mopen):
 
     # ── 8. Combine, label, build Excel ────────────────────────────────────
     all_matches = _label_times(bb_sched + pool_matches + brkt)
+    _apply_names(all_matches, id_to_name)
     final_end = max((m['end'] for m in all_matches), default=0)
     if final_end > DAY_AVAIL:
         msg = f'Schedule may exceed 8:30 PM (est. {fmt(final_end)}).'
@@ -359,7 +420,7 @@ def generate_bigde_mw_schedule(wb, wbb, wa, wopen, mb, mbb, ma, mopen):
     wb_obj = build_excel(all_pools, {'M_BB': bb_teams}, all_matches, bstruct, all_ci,
                          level_end, de_end_times, warning, counts_mw,
                          title="MEN'S/WOMEN'S  ·  BIG DE MODE",
-                         stagger_offsets={})
+                         stagger_offsets={}, id_to_name=id_to_name, roster=roster_all)
     buf = io.BytesIO(); wb_obj.save(buf); buf.seek(0)
     return buf, {
         'pools':        len(all_pools),
@@ -374,7 +435,14 @@ def generate_bigde_mw_schedule(wb, wbb, wa, wopen, mb, mbb, ma, mopen):
 
 
 # ── Men's / Women's tournament ───────────────────────────────────────────────
-def generate_mw_schedule(wb, wbb, wa, wopen, mb, mbb, ma, mopen):
+def generate_mw_schedule(rosters_w, rosters_m):
+    id_to_name = _assign_pool_ids(rosters_w, 'W_')
+    id_to_name.update(_assign_pool_ids(rosters_m, 'M_'))
+    roster_all = _flatten(rosters_w) + _flatten(rosters_m)
+    wb = len(rosters_w.get('B', [])); wbb = len(rosters_w.get('BB', []))
+    wa = len(rosters_w.get('A', [])); wopen = len(rosters_w.get('Open', []))
+    mb = len(rosters_m.get('B', [])); mbb = len(rosters_m.get('BB', []))
+    ma = len(rosters_m.get('A', [])); mopen = len(rosters_m.get('Open', []))
     w_pools_raw, w_de_raw, w_ci_raw, err = build_pools({'B': wb, 'BB': wbb, 'A': wa, 'Open': wopen}, combine_open=False)
     if err: return None, None, f"Women's: {err}"
     m_pools_raw, m_de_raw, m_ci_raw, err = build_pools({'B': mb, 'BB': mbb, 'A': ma, 'Open': mopen}, combine_open=False)
@@ -472,11 +540,12 @@ def generate_mw_schedule(wb, wbb, wa, wopen, mb, mbb, ma, mopen):
     if err: return None, None, err
 
     combined = _label_times(de_matches + pool_matches + brkt)
+    _apply_names(combined, id_to_name)
     counts_mw = {'W_B': wb, 'W_BB': wbb, 'W_A': wa, 'W_Open': wopen,
                  'M_B': mb, 'M_BB': mbb, 'M_A': ma, 'M_Open': mopen}
     wb_obj = build_excel(all_pools, all_de, combined, bstruct, all_ci, level_end, de_end_times,
                          warning, counts_mw, title="MEN'S / WOMEN'S TOURNAMENT",
-                         stagger_offsets=stagger_offsets)
+                         stagger_offsets=stagger_offsets, id_to_name=id_to_name, roster=roster_all)
     buf = io.BytesIO(); wb_obj.save(buf); buf.seek(0)
     final_end = max((m['end'] for m in combined), default=0)
     return buf, {
