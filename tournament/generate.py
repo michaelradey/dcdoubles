@@ -13,130 +13,172 @@ from .brackets import bracket_structure, schedule_brackets
 from .excel import build_excel
 
 
+# ── Shared bracket / DE helpers ──────────────────────────────────────────────
+def _base_bracket_structure(bstruct):
+    """Down-shift every level to its base (top-2-per-pool) bracket structure.
+    Six-team pools are left untouched. Used as the fallback when the expanded
+    bracket can't finish before the 8:30 PM cutoff."""
+    base = {}
+    for lvl, bsv in bstruct.items():
+        if bsv.get('is_six'):
+            base[lvl] = bsv
+            continue
+        ba = bsv['n_pools'] * 2
+        npi = 2 if bsv['n_pools'] == 3 else 0
+        ndir = 2 if bsv['n_pools'] == 3 else ba
+        base[lvl] = {**bsv, 'n_qual': ba, 'total': ba, 'n_playin': npi,
+                     'n_direct': ndir, 'format': f'{ba}-team', 'advances_per_pool': 2}
+    return base
+
+
+def _sixteam_structure(bsv):
+    """6-team championship structure (2 direct seeds + 2 play-ins) for one level.
+    Used to recover a championship match when a smaller bracket lost it."""
+    return {**bsv, 'n_qual': 6, 'total': 6, 'n_playin': 2, 'n_direct': 2,
+            'format': '6-team', 'advances_per_pool': 2}
+
+
+def _has_championship(matches, primary):
+    """True if a CHAMPIONSHIP match for `primary` exists in `matches`."""
+    return any(m['level'] == primary and 'CHAMPIONSHIP' in m['label'] for m in matches)
+
+
+def _label_times(matches):
+    """Sort matches by (start, court) and attach human-readable time labels."""
+    combined = sorted(matches, key=lambda m: (m['start'], m['court']))
+    for m in combined:
+        m['time_label'] = fmt(m['start'])
+        m['end_label'] = fmt(m['end'])
+    return combined
+
+
+def _reserve_de_courts(de_divs):
+    """Plan each DE division's bracket and reserve its primary courts.
+
+    Returns (courts_obj, de_plans, de_courts_all, error). The returned
+    ``courts_obj`` has the reserved courts blocked (free_at set far past the day)
+    so pool/bracket scheduling never lands on them; they are unblocked later by
+    :func:`_run_de_brackets`.
+    """
+    courts_obj = Courts()
+    de_plans = {}          # lvl -> (bracket, primary_courts)
+    de_courts_all = []
+    for lvl, teams in de_divs.items():
+        bracket, n_courts = schedule_de_division_plan(lvl, teams)
+        primary = []
+        for c in range(1, NUM_COURTS + 1):
+            if c not in de_courts_all:
+                primary.append(c)
+                if len(primary) == n_courts:
+                    break
+        if len(primary) < n_courts:
+            return None, None, None, f'Not enough courts to run {lvl} double elimination.'
+        de_courts_all.extend(primary)
+        de_plans[lvl] = (bracket, primary)
+        for c in primary:
+            courts_obj.free_at[c] = DAY_AVAIL + 999
+    return courts_obj, de_plans, de_courts_all, None
+
+
+def _run_de_brackets(de_plans, courts_obj):
+    """Unblock DE primary courts and schedule every DE bracket across all courts.
+
+    Pool/bracket courts in ``courts_obj`` keep their real free-at times, so DE
+    picks them up the moment they free. Returns (de_matches, de_end_times, error).
+    """
+    de_matches = []
+    de_end_times = {}
+    for lvl, (bracket, primary) in de_plans.items():
+        for c in primary:
+            courts_obj.free_at[c] = 0   # unblock
+        de_sched = renumber_de_matches(schedule_de_parallel(bracket, courts_obj))
+        de_matches.extend(de_sched)
+        de_end = max((m['end'] for m in de_sched), default=0)
+        de_end_times[lvl] = de_end
+        if de_end > DAY_AVAIL:
+            return None, None, (f'{lvl} double elimination cannot finish by 8:30 PM '
+                                f'(estimated end: {fmt(de_end)}). Reduce {lvl} team count.')
+    return de_matches, de_end_times, None
+
+
+# ── Co-ed tournament ─────────────────────────────────────────────────────────
 def generate_schedule(b, bb, a, opn):
-    counts = {'B':b,'BB':bb,'A':a,'Open':opn}
+    counts = {'B': b, 'BB': bb, 'A': a, 'Open': opn}
     pools, de_divs, combined_info, err = build_pools(counts)
     if err: return None, None, err
     if not pools and not de_divs:
         return None, None, 'No valid pools or brackets could be formed.'
 
-    # ── Step 1: Plan DE divisions (bracket + primary courts, no scheduling yet) ──
-    all_matches   = []
-    courts_obj    = Courts()
-    de_end_times  = {}
-    de_courts_all = []
-    de_plans      = {}   # lvl -> (bracket, primary_courts)
+    # Plan DE divisions and reserve their courts (blocked during pool/bracket play).
+    courts_obj, de_plans, de_courts_all, err = _reserve_de_courts(de_divs)
+    if err: return None, None, err
 
-    for lvl, teams in de_divs.items():
-        bracket, n_courts = schedule_de_division_plan(lvl, teams)
-        primary = []
-        for c in range(1, NUM_COURTS+1):
-            if c not in de_courts_all:
-                primary.append(c)
-                if len(primary) == n_courts: break
-        if len(primary) < n_courts:
-            return None, None, f'Not enough courts to run {lvl} double elimination.'
-        de_courts_all.extend(primary)
-        de_plans[lvl] = (bracket, primary)
-        # Block primary DE courts so pool/bracket scheduling never touches them
-        for c in primary:
-            courts_obj.free_at[c] = DAY_AVAIL + 999
-
-    # ── Step 2: Schedule pool play on non-DE courts ───────────────────────────
+    # Pool play on the remaining courts.
     pool_matches, courts_after, level_end = (
         schedule_pool_play(pools, courts=courts_obj, reserved_courts=de_courts_all)
         if pools else ([], courts_obj, {})
     )
-
     if pool_matches:
         gaps = check_pool_gaps(pool_matches, pools)
         if gaps:
-            details=[f"{lvl} Pool {pid} (gap={g} slots)" for (lvl,pid),g in sorted(gaps)]
-            return None,None,(
+            details = [f"{lvl} Pool {pid} (gap={g} slots)" for (lvl, pid), g in sorted(gaps)]
+            return None, None, (
                 "Pool gap constraint violated (max 1 idle slot between matches). "
-                "Not enough courts available. Violations: "+', '.join(details)+". "
+                "Not enough courts available. Violations: " + ', '.join(details) + ". "
                 "Reduce team counts to free up courts.")
 
-    # Compute per-level time budgets for brackets
-    time_budget = {}
-    for p in pools:
-        lvl = p['level']
-        pool_done = level_end.get(lvl, 0)
-        time_budget[lvl] = DAY_AVAIL - pool_done
-
-    bstruct  = bracket_structure(pools, combined_info, time_budget)
-    brkt     = schedule_brackets(pools, combined_info, courts_obj, level_end, bstruct)
-    last_brk = max((m['end'] for m in brkt), default=0)
+    # Brackets: try the expanded structure, fall back to base if it runs late.
+    time_budget = {p['level']: DAY_AVAIL - level_end.get(p['level'], 0) for p in pools}
+    bstruct = bracket_structure(pools, combined_info, time_budget)
+    brkt = schedule_brackets(pools, combined_info, courts_obj, level_end, bstruct)
 
     warning = None
-    if last_brk > DAY_AVAIL:
-        # Retry with base case (top 2 per pool)
-        base_bs={}
-        for lvl,bsv in bstruct.items():
-            np=bsv['n_pools']; ba=np*2
-            if bsv.get('is_six'): base_bs[lvl]=bsv
-            else:
-                npi=2 if np==3 else 0; ndir=2 if np==3 else ba
-                base_bs[lvl]={**bsv,'n_qual':ba,'total':ba,'n_playin':npi,'n_direct':ndir,'format':f'{ba}-team','advances_per_pool':2}
-        courts_obj2=courts_after.copy()
-        brkt2=schedule_brackets(pools,combined_info,courts_obj2,level_end,base_bs)
-        courts_obj=courts_obj2
-        last2=max((m['end'] for m in brkt2),default=0)
-        brkt=brkt2; bstruct=base_bs
-        warning=('Expanded bracket removed to fit 8:30 PM cutoff. Top-2-per-pool only.'
-                 if last2<=DAY_AVAIL else
-                 f'Tournament may exceed 8:30 PM (est {fmt(last2)}). Reduce team counts.')
+    if max((m['end'] for m in brkt), default=0) > DAY_AVAIL:
+        base_bs = _base_bracket_structure(bstruct)
+        courts_obj = courts_after.copy()
+        brkt = schedule_brackets(pools, combined_info, courts_obj, level_end, base_bs)
+        last2 = max((m['end'] for m in brkt), default=0)
+        bstruct = base_bs
+        warning = ('Expanded bracket removed to fit 8:30 PM cutoff. Top-2-per-pool only.'
+                   if last2 <= DAY_AVAIL else
+                   f'Tournament may exceed 8:30 PM (est {fmt(last2)}). Reduce team counts.')
 
-    # Championship verification
+    # If any level lost its championship match, retry that level at 6-team format.
     for lvl in list(bstruct.keys()):
-        primary=lvl.split('+')[0]
-        if not any(m['level']==primary and 'CHAMPIONSHIP' in m['label'] for m in brkt):
-            bsv=bstruct[lvl]; np=bsv['n_pools']
-            if np>=2:
-                fb={**bsv,'n_qual':6,'total':6,'n_playin':2,'n_direct':2,'format':'6-team','advances_per_pool':2}
-                bst2={k:(fb if k==lvl else v) for k,v in bstruct.items()}
-                brkt3=schedule_brackets(pools,combined_info,courts_obj.copy(),level_end,bst2)
-                if any(m['level']==primary and 'CHAMPIONSHIP' in m['label'] for m in brkt3):
-                    brkt=brkt3; bstruct=bst2
+        primary = lvl.split('+')[0]
+        if _has_championship(brkt, primary):
+            continue
+        if bstruct[lvl]['n_pools'] >= 2:
+            bst2 = {k: (_sixteam_structure(bstruct[lvl]) if k == lvl else v)
+                    for k, v in bstruct.items()}
+            brkt3 = schedule_brackets(pools, combined_info, courts_obj.copy(), level_end, bst2)
+            if _has_championship(brkt3, primary):
+                brkt, bstruct = brkt3, bst2
 
-    # ── Step 5: Schedule DE using ALL courts ─────────────────────────────────
-    # DE primary courts are reset to t=0. Pool/bracket courts in courts_obj
-    # carry their real free-at times, so DE picks them up the moment they free.
-    for lvl, (bracket, primary) in de_plans.items():
-        for c in primary:
-            courts_obj.free_at[c] = 0   # unblock primary courts
-        de_sched = schedule_de_parallel(bracket, courts_obj)
-        de_sched = renumber_de_matches(de_sched)
-        all_matches.extend(de_sched)
-        de_end = max(m['end'] for m in de_sched) if de_sched else 0
-        de_end_times[lvl] = de_end
-        if de_end > DAY_AVAIL:
-            return None, None, (f'{lvl} double elimination cannot finish by 8:30 PM '
-                f'(estimated end: {fmt(de_end)}). Reduce {lvl} team count.')
+    # Schedule DE across all courts (they pick up pool/bracket courts as they free).
+    de_matches, de_end_times, err = _run_de_brackets(de_plans, courts_obj)
+    if err: return None, None, err
 
-    # Combine all matches
-    combined = sorted(all_matches + pool_matches + brkt,
-                      key=lambda x:(x['start'],x['court']))
-    for m in combined:
-        m['time_label']=fmt(m['start']); m['end_label']=fmt(m['end'])
-
-    wb_obj = build_excel(pools, de_divs, combined, bstruct, combined_info, level_end, de_end_times, warning, counts)
+    combined = _label_times(de_matches + pool_matches + brkt)
+    wb_obj = build_excel(pools, de_divs, combined, bstruct, combined_info,
+                         level_end, de_end_times, warning, counts)
     buf = io.BytesIO(); wb_obj.save(buf); buf.seek(0)
 
-    final_end = max(m['end'] for m in combined) if combined else 0
-    courts_start = len([m for m in combined if m['start']==0])
+    final_end = max((m['end'] for m in combined), default=0)
     summary = {
-        'pools':len(pools),'de_divisions':list(de_divs.keys()),
-        'pool_matches':len(pool_matches),'brkt_matches':len(brkt),
-        'de_matches':len(all_matches),
-        'ends':fmt(final_end),'warning':warning,'courts_730':courts_start,
-        'pool_list':[(p['level'],p['pool_id'],p['size'],len(p['teams'])) for p in pools],
-        'bracket_info':{lvl:dict(v) for lvl,v in bstruct.items()},
-        'level_pool_end':{lvl:fmt(t) for lvl,t in level_end.items()},
+        'pools': len(pools), 'de_divisions': list(de_divs.keys()),
+        'pool_matches': len(pool_matches), 'brkt_matches': len(brkt),
+        'de_matches': len(de_matches),
+        'ends': fmt(final_end), 'warning': warning,
+        'courts_730': len([m for m in combined if m['start'] == 0]),
+        'pool_list': [(p['level'], p['pool_id'], p['size'], len(p['teams'])) for p in pools],
+        'bracket_info': {lvl: dict(v) for lvl, v in bstruct.items()},
+        'level_pool_end': {lvl: fmt(t) for lvl, t in level_end.items()},
     }
     return buf, summary, None
 
 
+# ── Big-DE M/W helpers ───────────────────────────────────────────────────────
 def _first_open_slot(intervals, dur, not_before=0):
     """
     Given sorted (start, end) busy intervals, find the first t >= not_before
@@ -259,8 +301,7 @@ def generate_bigde_mw_schedule(wb, wbb, wa, wopen, mb, mbb, ma, mopen):
         dur = len(RR.get(p['size'], [])) * POOL_DUR
         return (0 if '+' in p['level'] else 1, -dur, p['level'])
     sorted_pools = sorted(all_pools, key=_pp)
-    pool_matches, level_end, courts_pool = schedule_pools_freed_courts(
-        sorted_pools, court_ivs)
+    pool_matches, level_end, _ = schedule_pools_freed_courts(sorted_pools, court_ivs)
 
     # ── 5. 10 AM check ────────────────────────────────────────────────────
     TEN_AM = 160   # minutes from 7:20 AM = 10:00 AM
@@ -282,51 +323,37 @@ def generate_bigde_mw_schedule(wb, wbb, wa, wopen, mb, mbb, ma, mopen):
     for m in bb_sched:
         courts_brkt.book(m['court'], m['start'], m['end'] - m['start'])
 
-    # ── 7. Schedule brackets ──────────────────────────────────────────────
+    # ── 7. Schedule brackets (per gender, on a snapshot of the busy courts) ─
     def _run_brkt(pools_raw, ci_raw, pfx, le_all):
         le   = {k[len(pfx):]: v for k, v in le_all.items() if k.startswith(pfx)}
         tb   = {k: DAY_AVAIL - v for k, v in le.items()}
         bst  = bracket_structure(pools_raw, ci_raw, tb)
-        snap = courts_brkt.copy()
-        brkt = schedule_brackets(pools_raw, ci_raw, snap, le, bst)
+        brkt = schedule_brackets(pools_raw, ci_raw, courts_brkt.copy(), le, bst)
         last = max((m['end'] for m in brkt), default=0)
         if last > DAY_AVAIL:
-            base = {}
-            for lvl, bsv in bst.items():
-                np = bsv['n_pools']
-                if bsv.get('is_six'):
-                    base[lvl] = bsv
-                else:
-                    ba = np*2; npi = 2 if np==3 else 0; ndir = 2 if np==3 else ba
-                    base[lvl] = {**bsv, 'n_qual':ba, 'total':ba, 'n_playin':npi,
-                                 'n_direct':ndir, 'format':f'{ba}-team', 'advances_per_pool':2}
-            snap2 = courts_brkt.copy()
-            brkt2 = schedule_brackets(pools_raw, ci_raw, snap2, le, base)
+            base = _base_bracket_structure(bst)
+            brkt2 = schedule_brackets(pools_raw, ci_raw, courts_brkt.copy(), le, base)
             if max((m['end'] for m in brkt2), default=0) <= last:
                 brkt, bst = brkt2, base
         for m in brkt:
             m['level'] = pfx + m['level']
             m['label'] = pfx + m['label']
-        return brkt, {pfx+k: v for k, v in bst.items()}
+        return brkt, {pfx + k: v for k, v in bst.items()}
 
     w_brkt, w_bst = _run_brkt(w_pools_raw, w_ci_raw, 'W_', level_end)
     m_brkt, m_bst = _run_brkt(m_pools_raw, m_ci_raw, 'M_', level_end)
-    brkt   = w_brkt + m_brkt
+    brkt = w_brkt + m_brkt
     bstruct = {**w_bst, **m_bst}
 
     # ── 8. Combine, label, build Excel ────────────────────────────────────
-    all_matches = sorted(bb_sched + pool_matches + brkt,
-                         key=lambda x: (x['start'], x['court']))
-    for m in all_matches:
-        m['time_label'] = fmt(m['start'])
-        m['end_label']  = fmt(m['end'])
-    final_end = max(m['end'] for m in all_matches) if all_matches else 0
+    all_matches = _label_times(bb_sched + pool_matches + brkt)
+    final_end = max((m['end'] for m in all_matches), default=0)
     if final_end > DAY_AVAIL:
         msg = f'Schedule may exceed 8:30 PM (est. {fmt(final_end)}).'
         warning = (warning + ' · ' + msg) if warning else msg
 
-    counts_mw = {'W_B':wb,'W_BB':wbb,'W_A':wa,'W_Open':wopen,
-                 'M_B':mb,'M_BB':mbb,'M_A':ma,'M_Open':mopen}
+    counts_mw = {'W_B': wb, 'W_BB': wbb, 'W_A': wa, 'W_Open': wopen,
+                 'M_B': mb, 'M_BB': mbb, 'M_A': ma, 'M_Open': mopen}
     de_end_times = {'M_BB': de_end}
 
     wb_obj = build_excel(all_pools, {'M_BB': bb_teams}, all_matches, bstruct, all_ci,
@@ -346,10 +373,11 @@ def generate_bigde_mw_schedule(wb, wbb, wa, wopen, mb, mbb, ma, mopen):
     }, None
 
 
+# ── Men's / Women's tournament ───────────────────────────────────────────────
 def generate_mw_schedule(wb, wbb, wa, wopen, mb, mbb, ma, mopen):
-    w_pools_raw, w_de_raw, w_ci_raw, err = build_pools({'B':wb,'BB':wbb,'A':wa,'Open':wopen}, combine_open=False)
+    w_pools_raw, w_de_raw, w_ci_raw, err = build_pools({'B': wb, 'BB': wbb, 'A': wa, 'Open': wopen}, combine_open=False)
     if err: return None, None, f"Women's: {err}"
-    m_pools_raw, m_de_raw, m_ci_raw, err = build_pools({'B':mb,'BB':mbb,'A':ma,'Open':mopen}, combine_open=False)
+    m_pools_raw, m_de_raw, m_ci_raw, err = build_pools({'B': mb, 'BB': mbb, 'A': ma, 'Open': mopen}, combine_open=False)
     if err: return None, None, f"Men's: {err}"
     w_pools, w_de, w_ci = add_gender_prefix(w_pools_raw, w_de_raw, w_ci_raw, 'W_')
     m_pools, m_de, m_ci = add_gender_prefix(m_pools_raw, m_de_raw, m_ci_raw, 'M_')
@@ -385,19 +413,9 @@ def generate_mw_schedule(wb, wbb, wa, wopen, mb, mbb, ma, mopen):
     else:
         return None, None, 'Too many teams: cannot reduce to ≤9 simultaneous pool courts.'
 
-    all_matches=[]; courts_obj=Courts(); de_plans={}; de_courts_all=[]; de_end_times={}
-    for lvl, teams in all_de.items():
-        bracket, n_courts = schedule_de_division_plan(lvl, teams)
-        primary=[]
-        for c in range(1, NUM_COURTS+1):
-            if c not in de_courts_all:
-                primary.append(c)
-                if len(primary)==n_courts: break
-        if len(primary)<n_courts:
-            return None, None, f'Not enough courts for {lvl} double elimination.'
-        de_courts_all.extend(primary)
-        de_plans[lvl]=(bracket, primary)
-        for c in primary: courts_obj.free_at[c]=DAY_AVAIL+999
+    # Reserve DE courts, then schedule staggered pool play on the rest.
+    courts_obj, de_plans, de_courts_all, err = _reserve_de_courts(all_de)
+    if err: return None, None, err
     stagger_offsets, err = compute_stagger_offsets(all_pools, len(de_courts_all))
     if err: return None, None, err
     stagger_offsets = stagger_offsets or {}
@@ -409,65 +427,61 @@ def generate_mw_schedule(wb, wbb, wa, wopen, mb, mbb, ma, mopen):
     if pool_matches:
         gaps = check_pool_gaps(pool_matches, all_pools)
         if gaps:
-            details=[f"{l} Pool {p} (gap={g})" for (l,p),g in sorted(gaps)]
-            return None, None, "Pool gap violated: "+', '.join(details)
-    def _glend(pfx): return {k[len(pfx):]:v for k,v in level_end.items() if k.startswith(pfx)}
-    def _gtb(pfx):   return {k[len(pfx):]:DAY_AVAIL-level_end.get(k,0) for k in level_end if k.startswith(pfx)}
-    def _run_brackets(pr, cr, pfx, le, tb):
-        bst=bracket_structure(pr, cr, tb)
-        brkt=schedule_brackets(pr, cr, courts_obj, le, bst)
-        last=max((m['end'] for m in brkt),default=0)
-        warn=None
-        if last>DAY_AVAIL:
-            base_bs={}
-            for lvl,bsv in bst.items():
-                np=bsv['n_pools']; ba=np*2
-                if bsv.get('is_six'): base_bs[lvl]=bsv
-                else:
-                    npi=2 if np==3 else 0; ndir=2 if np==3 else ba
-                    base_bs[lvl]={**bsv,'n_qual':ba,'total':ba,'n_playin':npi,'n_direct':ndir,'format':f'{ba}-team','advances_per_pool':2}
-            snap=courts_after.copy()
-            for c in range(1,NUM_COURTS+1): snap.free_at[c]=max(snap.free_at[c],courts_obj.free_at[c])
-            brkt2=schedule_brackets(pr, cr, snap, le, base_bs)
-            if max((m['end'] for m in brkt2),default=0)<=last: brkt,bst=brkt2,base_bs
-            warn=f'{pfx[:-1]} brackets may exceed 8:30 PM.'
-        for lvl in list(bst.keys()):
-            prim=lvl.split('+')[0]
-            if not any(m['level']==prim and 'CHAMPIONSHIP' in m['label'] for m in brkt):
-                bsv=bst[lvl]; np=bsv['n_pools']
-                if np>=2:
-                    fb={**bsv,'n_qual':6,'total':6,'n_playin':2,'n_direct':2,'format':'6-team','advances_per_pool':2}
-                    bst2={k:(fb if k==lvl else v) for k,v in bst.items()}
-                    brkt3=schedule_brackets(pr,cr,courts_obj.copy(),le,bst2)
-                    if any(m['level']==prim and 'CHAMPIONSHIP' in m['label'] for m in brkt3):
-                        brkt,bst=brkt3,bst2
-        for m in brkt: m['level']=pfx+m['level']; m['label']=pfx+m['label']
-        return brkt, {pfx+k:v for k,v in bst.items()}, warn
-    w_brkt,w_bst,w_warn=_run_brackets(w_pools_raw,w_ci_raw,'W_',_glend('W_'),_gtb('W_'))
-    m_brkt,m_bst,m_warn=_run_brackets(m_pools_raw,m_ci_raw,'M_',_glend('M_'),_gtb('M_'))
-    brkt=w_brkt+m_brkt; bstruct={**w_bst,**m_bst}
-    warning='; '.join(x for x in [w_warn,m_warn] if x) or None
-    for lvl,(bracket,primary) in de_plans.items():
-        for c in primary: courts_obj.free_at[c]=0
-        de_sched=schedule_de_parallel(bracket, courts_obj)
-        de_sched=renumber_de_matches(de_sched)
-        all_matches.extend(de_sched)
-        de_end=max(m['end'] for m in de_sched) if de_sched else 0
-        de_end_times[lvl]=de_end
-        if de_end>DAY_AVAIL:
-            return None,None,(f'{lvl} DE cannot finish by 8:30 PM (est {fmt(de_end)}).')
-    combined=sorted(all_matches+pool_matches+brkt,key=lambda x:(x['start'],x['court']))
-    for m in combined: m['time_label']=fmt(m['start']); m['end_label']=fmt(m['end'])
-    counts_mw={'W_B':wb,'W_BB':wbb,'W_A':wa,'W_Open':wopen,'M_B':mb,'M_BB':mbb,'M_A':ma,'M_Open':mopen}
-    wb_obj=build_excel(all_pools,all_de,combined,bstruct,all_ci,level_end,de_end_times,
-                       warning,counts_mw,title="MEN'S / WOMEN'S TOURNAMENT",
-                       stagger_offsets=stagger_offsets)
-    buf=io.BytesIO(); wb_obj.save(buf); buf.seek(0)
-    final_end=max(m['end'] for m in combined) if combined else 0
-    return buf, {
-        'pools':len(all_pools),'de_divisions':list(all_de.keys()),
-        'pool_matches':len(pool_matches),'brkt_matches':len(brkt),
-        'de_matches':len(all_matches),'ends':fmt(final_end),
-        'stagger':{l:fmt(t) for l,t in stagger_offsets.items() if t>0},
-    }, None
+            details = [f"{l} Pool {p} (gap={g})" for (l, p), g in sorted(gaps)]
+            return None, None, "Pool gap violated: " + ', '.join(details)
 
+    def _glend(pfx): return {k[len(pfx):]: v for k, v in level_end.items() if k.startswith(pfx)}
+    def _gtb(pfx):   return {k[len(pfx):]: DAY_AVAIL - level_end.get(k, 0) for k in level_end if k.startswith(pfx)}
+
+    # Per-gender brackets: expanded → base fallback → championship recovery.
+    def _run_brackets(pr, cr, pfx, le, tb):
+        bst = bracket_structure(pr, cr, tb)
+        brkt = schedule_brackets(pr, cr, courts_obj, le, bst)
+        last = max((m['end'] for m in brkt), default=0)
+        warn = None
+        if last > DAY_AVAIL:
+            base_bs = _base_bracket_structure(bst)
+            snap = courts_after.copy()
+            for c in range(1, NUM_COURTS + 1):
+                snap.free_at[c] = max(snap.free_at[c], courts_obj.free_at[c])
+            brkt2 = schedule_brackets(pr, cr, snap, le, base_bs)
+            if max((m['end'] for m in brkt2), default=0) <= last:
+                brkt, bst = brkt2, base_bs
+            warn = f'{pfx[:-1]} brackets may exceed 8:30 PM.'
+        for lvl in list(bst.keys()):
+            prim = lvl.split('+')[0]
+            if _has_championship(brkt, prim):
+                continue
+            if bst[lvl]['n_pools'] >= 2:
+                bst2 = {k: (_sixteam_structure(bst[lvl]) if k == lvl else v)
+                        for k, v in bst.items()}
+                brkt3 = schedule_brackets(pr, cr, courts_obj.copy(), le, bst2)
+                if _has_championship(brkt3, prim):
+                    brkt, bst = brkt3, bst2
+        for m in brkt:
+            m['level'] = pfx + m['level']; m['label'] = pfx + m['label']
+        return brkt, {pfx + k: v for k, v in bst.items()}, warn
+
+    w_brkt, w_bst, w_warn = _run_brackets(w_pools_raw, w_ci_raw, 'W_', _glend('W_'), _gtb('W_'))
+    m_brkt, m_bst, m_warn = _run_brackets(m_pools_raw, m_ci_raw, 'M_', _glend('M_'), _gtb('M_'))
+    brkt = w_brkt + m_brkt; bstruct = {**w_bst, **m_bst}
+    warning = '; '.join(x for x in [w_warn, m_warn] if x) or None
+
+    # Schedule DE across all courts.
+    de_matches, de_end_times, err = _run_de_brackets(de_plans, courts_obj)
+    if err: return None, None, err
+
+    combined = _label_times(de_matches + pool_matches + brkt)
+    counts_mw = {'W_B': wb, 'W_BB': wbb, 'W_A': wa, 'W_Open': wopen,
+                 'M_B': mb, 'M_BB': mbb, 'M_A': ma, 'M_Open': mopen}
+    wb_obj = build_excel(all_pools, all_de, combined, bstruct, all_ci, level_end, de_end_times,
+                         warning, counts_mw, title="MEN'S / WOMEN'S TOURNAMENT",
+                         stagger_offsets=stagger_offsets)
+    buf = io.BytesIO(); wb_obj.save(buf); buf.seek(0)
+    final_end = max((m['end'] for m in combined), default=0)
+    return buf, {
+        'pools': len(all_pools), 'de_divisions': list(all_de.keys()),
+        'pool_matches': len(pool_matches), 'brkt_matches': len(brkt),
+        'de_matches': len(de_matches), 'ends': fmt(final_end),
+        'stagger': {l: fmt(t) for l, t in stagger_offsets.items() if t > 0},
+    }, None
