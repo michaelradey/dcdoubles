@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DC Doubles 2026 – Combined Tournament Bracket</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: Arial, sans-serif;
+    background: #eef2f7;
+    padding: 30px;
+    color: #222;
+  }
+  h1 {
+    text-align: center;
+    font-size: 26px;
+    margin-bottom: 6px;
+    color: #111;
+    letter-spacing: 0.5px;
+  }
+  .subtitle {
+    text-align: center;
+    color: #666;
+    font-size: 13px;
+    margin-bottom: 40px;
+  }
+  .section { margin-bottom: 56px; }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .division-badge {
+    background: #1a2340;
+    color: #fff;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 7px 18px;
+    border-radius: 5px;
+    letter-spacing: 0.4px;
+  }
+  .team-count {
+    color: #888;
+    font-size: 13px;
+  }
+  .bracket-wrap {
+    background: white;
+    border-radius: 10px;
+    padding: 24px 24px 32px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    overflow-x: auto;
+  }
+  .bracket-input {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: transparent;
+    outline: none;
+    color: #222;
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    padding: 0 6px;
+  }
+  @page {
+    size: 17in 11in;
+    margin: 0.35in;
+  }
+  @media print {
+    body {
+      background: #fff;
+      padding: 0;
+    }
+    h1 {
+      margin-bottom: 2px;
+      font-size: 20px;
+    }
+    .subtitle {
+      margin-bottom: 14px;
+      font-size: 11px;
+      color: #555;
+    }
+    .section {
+      margin-bottom: 0;
+    }
+    .bracket-wrap {
+      box-shadow: none;
+      border: 1px solid #ddd;
+      border-radius: 0;
+      padding: 10px;
+      overflow: visible;
+    }
+    svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+  }
+</style>
+</head>
+<body>
+
+<h1>DC Doubles 2026</h1>
+<p class="subtitle">Single Elimination Combined Bracket</p>
+
+<div class="section">
+  <div class="section-header">
+    <span class="division-badge">Men's BB + B Combined</span>
+    <span class="team-count">24 teams · 32-draw (8 byes)</span>
+  </div>
+  <div class="bracket-wrap" id="combined-bracket"></div>
+</div>
+
+<script>
+// ─── TEAM DATA ───────────────────────────────────────────────────────────────
+
+const BB_TEAMS = [
+  "Alex Bi / Pranav Chatterjee",
+  "Abraham Kaker / Kyle Morales",
+  "Alejandro Cardentey / Parker Short",
+  "Mustafa Khaliqy / James Shriver",
+  "James Marion / Lucas Fox",
+  "Evan Nguyen / Zayden Tamashiro",
+  "Toni Val / Nick Bogart",
+  "Rayeed Munawwar / Nikhil Mahdu",
+  "Patrick Schurr / Ian Schurr",
+  "Diego Arenas / JP Rippe",
+  "Zack Murphy / Neil Chambers",
+  "Sergey D'Alessandro / Harmon Hawkins",
+  "Florian Spleiss / Tim Schulz",
+  "Cal Papineau / Matt Slade",
+  "Tyler Wilkinson / Matthew McClanahan"
+];
+
+const B_TEAMS = [
+  "Brett Cranston / Tal Dunne",
+  "Sam Thomas / Max Dupont",
+  "Jeremy Levine / Michael Hughes",
+  "Dylan Phan / Jordan Su",
+  "William Thomas / Steven Asher",
+  "Carter Musheno / Alec Musheno",
+  "Jeremy Baum / Mohammed Husain",
+  "Kuhan Mahendraraj / Michael Taylor",
+  "Christian Martinez Ortega / Terry Trapane"
+];
+
+const COMBINED_TEAMS = [...BB_TEAMS, ...B_TEAMS];
+
+// ─── BRACKET LAYOUT ──────────────────────────────────────────────────────────
+
+const SLOT_H   = 38;   // px per team slot in the full bracket grid
+const TW       = 180;  // team box width
+const TH       = 28;   // team box height
+const CONN     = 16;   // horizontal connector arm length (each side of V-line)
+const RS       = TW + CONN * 2;  // round spacing
+const PAD      = 30;
+const HDR      = 36;   // header height above games
+const FONT     = 9;
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+
+function nextPow2(n) {
+  let s = 1;
+  while (s < n) s *= 2;
+  return s;
+}
+
+/**
+ * Arrange teams in first-round slots so that:
+ *  - Real-vs-real games come first
+ *  - Remaining teams are paired against empty slots (BYE paths)
+ *  - BYE paths are interleaved so round-2 games become
+ *    winner-of-round-1 vs BYE-advanced team where possible
+ */
+function buildSlots(teams) {
+  const size = nextPow2(teams.length);
+  const byeGames  = size - teams.length;          // games with a BYE
+  const realGames = size / 2 - byeGames;          // games between two real teams
+
+  const slots = [];
+  const firstRoundGames = size / 2;
+  const realPairGames = [];
+  const byePathGames = [];
+
+  // Build playable round-1 games from the front of the seed list.
+  for (let i = 0; i < realGames; i++) {
+    realPairGames.push({ a: teams[i * 2], b: teams[i * 2 + 1] });
+  }
+
+  // Remaining teams receive a BYE path.
+  for (let i = realGames * 2; i < teams.length; i++) {
+    byePathGames.push({ a: teams[i], b: "" });
+  }
+
+  // Interleave real and BYE games so each round-2 pairing sees one of each.
+  const orderedGames = [];
+  while (orderedGames.length < firstRoundGames) {
+    if (realPairGames.length && byePathGames.length) {
+      orderedGames.push(realPairGames.shift());
+      if (orderedGames.length < firstRoundGames) orderedGames.push(byePathGames.shift());
+      continue;
+    }
+    if (realPairGames.length) {
+      orderedGames.push(realPairGames.shift());
+      continue;
+    }
+    if (byePathGames.length) {
+      orderedGames.push(byePathGames.shift());
+      continue;
+    }
+    orderedGames.push({ a: "", b: "" });
+  }
+
+  orderedGames.forEach(function(game) {
+    slots.push(game.a || "");
+    slots.push(game.b || "");
+  });
+
+  return slots;
+}
+
+function buildRoundDisplay(teams) {
+  const slots = buildSlots(teams);
+  const size = slots.length;
+  const numR = Math.log2(size);
+  const rounds = Array.from({ length: numR }, () => []);
+
+  // Winners can be:
+  // - string: known team name
+  // - null: pending result (match exists but winner not known yet)
+  // - '': no team on this path
+  let winners = [];
+
+  const r0Games = size / 2;
+  for (let g = 0; g < r0Games; g++) {
+    const a = slots[g * 2] || "";
+    const b = slots[g * 2 + 1] || "";
+    const isPlayable = !!a && !!b;
+
+    // Hide BYE matches from round 1; those teams appear in round 2.
+    rounds[0][g] = { a: isPlayable ? a : "", b: isPlayable ? b : "" };
+
+    if (isPlayable) winners[g] = null;
+    else if (a && !b) winners[g] = a;
+    else if (!a && b) winners[g] = b;
+    else winners[g] = "";
+  }
+
+  for (let r = 1; r < numR; r++) {
+    const numGames = size / Math.pow(2, r + 1);
+    const nextWinners = [];
+
+    for (let g = 0; g < numGames; g++) {
+      const wa = winners[g * 2];
+      const wb = winners[g * 2 + 1];
+
+      // Show only known team names in future rounds; pending stays visually blank.
+      const a = typeof wa === "string" && wa ? wa : "";
+      const b = typeof wb === "string" && wb ? wb : "";
+      rounds[r][g] = { a, b };
+
+      // Auto-advance only across a true empty path, not across pending matches.
+      if (typeof wa === "string" && wa && wb === "") nextWinners[g] = wa;
+      else if (typeof wb === "string" && wb && wa === "") nextWinners[g] = wb;
+      else if (wa === "" && wb === "") nextWinners[g] = "";
+      else nextWinners[g] = null;
+    }
+
+    winners = nextWinners;
+  }
+
+  return { rounds, size, numR };
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+
+function renderBracket(containerId, inputTeams) {
+  const NS = "http://www.w3.org/2000/svg";
+  const XHTML = "http://www.w3.org/1999/xhtml";
+  const display = buildRoundDisplay(inputTeams);
+  const rounds = display.rounds;
+  const size = display.size;
+  const numR = display.numR;
+
+  // SVG dimensions
+  const svgW = PAD + (numR - 1) * RS + TW + PAD;
+  const svgH = size * SLOT_H + HDR + PAD * 2;
+
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("width",  svgW);
+  svg.setAttribute("height", svgH);
+
+  // Utility: x origin of a given round column
+  function gx(r) { return PAD + r * RS; }
+
+  // Utility: center-Y of a game (vertical midpoint between its two team boxes)
+  function gcy(r, g) {
+    const slotsPerGame = Math.pow(2, r + 1);
+    return HDR + PAD + (g * slotsPerGame + slotsPerGame / 2) * SLOT_H;
+  }
+
+  // Utility: create and append an SVG element with given attrs
+  function el(tag, attrs, parent) {
+    const e = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+    (parent || svg).appendChild(e);
+    return e;
+  }
+
+  // ── Round headers ──────────────────────────────────────────────────────────
+  const labels = [];
+  for (let r = 0; r < numR; r++) {
+    labels.push("");
+  }
+  for (let r = 0; r < numR; r++) {
+    if (!labels[r]) continue;
+    el("text", {
+      x: gx(r) + TW / 2, y: HDR - 4,
+      "text-anchor": "middle",
+      "font-size": 11, "font-weight": "bold", "fill": "#444",
+      "font-family": "Arial, sans-serif"
+    }).textContent = labels[r];
+  }
+
+  // ── Game boxes & connectors ────────────────────────────────────────────────
+  function drawTeamBox(x, y, label) {
+    el("rect", {
+      x, y, width: TW, height: TH,
+      fill: "white",
+      stroke: "#444",
+      "stroke-width": 1
+    });
+
+    const fo = el("foreignObject", {
+      x: x + 1,
+      y: y + 1,
+      width: TW - 2,
+      height: TH - 2
+    });
+
+    const input = document.createElementNS(XHTML, "input");
+    input.setAttribute("type", "text");
+    input.setAttribute("class", "bracket-input");
+    input.setAttribute("autocomplete", "off");
+    input.setAttribute("spellcheck", "false");
+    input.value = label || "";
+    fo.appendChild(input);
+  }
+
+  for (let r = 0; r < numR; r++) {
+    const numGames = size / Math.pow(2, r + 1);
+    const x = gx(r);
+
+    for (let g = 0; g < numGames; g++) {
+      const cy  = gcy(r, g);
+      const t1y = cy - TH;
+      const t2y = cy;
+
+      const slot = rounds[r][g] || { a: "", b: "" };
+      const t1 = slot.a;
+      const t2 = slot.b;
+      const hasAny = !!t1 || !!t2;
+
+      if (r === 0) {
+        // Only suppress empty no-op games in round 1.
+        if (t1) drawTeamBox(x, t1y, t1);
+        if (t2) drawTeamBox(x, t2y, t2);
+      } else {
+        // Keep full structure from round 2 onward, including empty paths.
+        drawTeamBox(x, t1y, t1);
+        drawTeamBox(x, t2y, t2);
+      }
+
+      // Connectors (skip final round — winner line drawn separately)
+      if (r < numR - 1) {
+        const rx = x + TW;       // right edge of box
+        const vx = rx + CONN;    // x of the vertical connector rail
+
+        if (r === 0) {
+          // Round 1: prune no-op BYE games while keeping valid BYE routes.
+          if (hasAny) {
+            el("line", { x1: rx, y1: cy, x2: vx, y2: cy, stroke: "#888", "stroke-width": 1.5 });
+          }
+
+          if (g % 2 === 0 && g + 1 < numGames) {
+            const nextCY = gcy(r, g + 1);
+            const midY   = (cy + nextCY) / 2;
+            const nextSlot = rounds[r][g + 1] || { a: "", b: "" };
+            const nextHasAny = !!nextSlot.a || !!nextSlot.b;
+
+            if (hasAny && nextHasAny) {
+              el("line", { x1: vx, y1: cy, x2: vx, y2: nextCY, stroke: "#888", "stroke-width": 1.5 });
+              el("line", { x1: vx, y1: midY, x2: gx(r + 1), y2: midY, stroke: "#888", "stroke-width": 1.5 });
+            } else if (hasAny || nextHasAny) {
+              const activeY = hasAny ? cy : nextCY;
+              if (activeY !== midY) {
+                el("line", { x1: vx, y1: activeY, x2: vx, y2: midY, stroke: "#888", "stroke-width": 1.5 });
+              }
+              el("line", { x1: vx, y1: midY, x2: gx(r + 1), y2: midY, stroke: "#888", "stroke-width": 1.5 });
+            }
+          }
+        } else {
+          // Round 2+: preserve full bracket geometry, including empty paths.
+          el("line", { x1: rx, y1: cy, x2: vx, y2: cy, stroke: "#888", "stroke-width": 1.5 });
+          if (g % 2 === 0 && g + 1 < numGames) {
+            const nextCY = gcy(r, g + 1);
+            const midY   = (cy + nextCY) / 2;
+            el("line", { x1: vx, y1: cy, x2: vx, y2: nextCY, stroke: "#888", "stroke-width": 1.5 });
+            el("line", { x1: vx, y1: midY, x2: gx(r + 1), y2: midY, stroke: "#888", "stroke-width": 1.5 });
+          }
+        }
+      }
+    }
+  }
+
+  document.getElementById(containerId).appendChild(svg);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+renderBracket("combined-bracket", COMBINED_TEAMS);
+</script>
+</body>
+</html>

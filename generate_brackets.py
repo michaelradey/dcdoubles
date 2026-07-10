@@ -84,33 +84,33 @@ h1{font-family:'Syne',sans-serif;font-size:clamp(1.6rem,4vw,2.6rem);font-weight:
 button{background:transparent;color:var(--mut);border:1px solid var(--brd);border-radius:9px;font-family:'Syne',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.05em;padding:9px 16px;cursor:pointer;transition:opacity .2s}
 button:hover{opacity:.7}button:active{opacity:.5}
 .empty{max-width:900px;margin:60px auto;text-align:center;color:var(--mut);font-size:.85rem;line-height:2}
-#bracket{overflow-x:auto;padding-bottom:20px;max-width:900px;margin:0 auto}
-.section{margin-bottom:36px}
-.sec-title{font-family:'Syne',sans-serif;font-size:.9rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px;padding-left:2px}
-.section:nth-child(1) .sec-title{color:var(--WB)}
-.section:nth-child(2) .sec-title{color:var(--LB)}
-.section:nth-child(3) .sec-title{color:var(--GF)}
-.cols{display:flex;gap:20px;align-items:flex-start}
-.col{display:flex;flex-direction:column;gap:16px;min-width:230px}
-.col-h{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);text-align:center;margin-bottom:2px}
-.match{background:var(--sur);border:1px solid var(--brd);border-radius:10px;padding:8px;position:relative}
-.mnum{position:absolute;top:-8px;left:8px;background:var(--bg);border:1px solid var(--brd);border-radius:5px;font-size:.6rem;color:var(--mut);padding:1px 5px}
-.slot{display:flex;align-items:center;gap:6px;padding:3px 0}
-.team{flex:1;font-size:.8rem;padding:6px 8px;border-radius:6px;border:1.5px solid var(--brd);background:var(--bg);color:var(--txt);line-height:1.3;overflow-wrap:anywhere}
+#bracket{overflow:auto;padding:4px 4px 30px}
+.canvas{position:relative;margin:0 auto}
+svg.wires{position:absolute;top:0;left:0;pointer-events:none;z-index:0;overflow:visible}
+.wire{fill:none;stroke:#b7c1cd;stroke-width:1.5}
+.wire.loser{stroke:#d8c3a6;stroke-dasharray:4 4}
+.band-title{position:absolute;left:2px;font-family:'Syne',sans-serif;font-size:.9rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+.match{position:absolute;width:235px;background:var(--sur);border:1px solid var(--brd);border-radius:9px;padding:6px 8px;z-index:1}
+.mnum{position:absolute;top:-8px;left:8px;background:var(--bg);border:1px solid var(--brd);border-radius:5px;font-size:.58rem;color:var(--mut);padding:1px 5px}
+.slot{display:flex;align-items:center;gap:6px;padding:2px 0}
+.team{flex:1;min-width:0;font-size:.76rem;padding:5px 7px;border-radius:6px;border:1.5px solid var(--brd);background:var(--bg);color:var(--txt);line-height:1.25;overflow-wrap:anywhere}
 .team.pending{color:var(--mut);font-style:italic}
 .slot.won .team{border-color:var(--win);color:var(--win);font-weight:500}
 .slot.lost .team{opacity:.4}
-.win-btn{flex:none;width:24px;height:24px;background:transparent;border:1.5px solid var(--brd);border-radius:6px;color:var(--mut);font-size:.8rem;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.win-btn{flex:none;width:22px;height:22px;background:transparent;border:1.5px solid var(--brd);border-radius:6px;color:var(--mut);font-size:.75rem;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
 .slot.won .win-btn{background:var(--win);border-color:var(--win);color:#ffffff}
-.mnote{font-size:.62rem;color:var(--mut);font-style:italic;padding:4px 2px 2px;line-height:1.4}
+.mnote{font-size:.58rem;color:var(--mut);font-style:italic;padding-top:4px;line-height:1.3}
 footer{text-align:center;margin-top:40px;font-size:.72rem;color:var(--mut)}
+@page{size:landscape}
 @media print{
   body{background:#fff;color:#000;padding:0}
   .toolbar,header .sub,footer{display:none!important}
-  .match{border-color:#999;background:#fff;break-inside:avoid}
+  #bracket{overflow:visible}
+  .match{border-color:#999;background:#fff}
   .team{border-color:#ccc;color:#000;background:#fff}
   .slot.won .team{color:#000;font-weight:700;border-color:#000}
-  h1,.sec-title{color:#000}
+  .wire{stroke:#999}.wire.loser{stroke:#bbb}
+  h1{color:#000}.band-title{color:#000!important}
 }
 </style></head><body>
 <header>
@@ -181,28 +181,112 @@ function matchCard(m) {
   </div>`;
 }
 
+// Layout constants (a "game" is one card holding both team slots).
+const SEC = [['WB','Winners Bracket'],['LB','Losers Bracket'],['GF','Grand Final']];
+const CARD_W = 235, COL_GAP = 64, GAME_GAP = 22, SECTION_GAP = 46, TITLE_H = 32;
+
+// Same-section feeder match ids for a game (used to center it over its children).
+function sameSectionFeeders(m, idset) {
+  const out = [];
+  [m.team_a, m.team_b].forEach(s => {
+    const r = parseRef(s);
+    if (r && idset.has(r.ref)) out.push(r.ref);
+  });
+  return out;
+}
+
 function render() {
+  const wrap = document.getElementById('bracket');
   if (!MATCHES.length) {
-    document.getElementById('bracket').innerHTML =
-      '<div class="empty">No teams yet.<br>Edit TEAMS in generate_brackets.py and re-run it.</div>';
+    wrap.innerHTML = '<div class="empty">No teams yet.<br>Add a CSV to upload/ and re-run generate_brackets.py.</div>';
     return;
   }
-  const sections = [['WB','Winners Bracket'],['LB','Losers Bracket'],['GF','Grand Final']];
-  let html = '';
-  sections.forEach(([bk, title]) => {
+
+  // Column index per (section, round), in encounter order.
+  const colIdx = {};
+  SEC.forEach(([bk]) => {
+    const rounds = [...new Set(MATCHES.filter(m => m.bracket === bk).map(m => m.round))];
+    rounds.forEach((rd, ci) => { colIdx[bk + '|' + rd] = ci; });
+  });
+
+  // Render cards into a canvas, place X, then measure heights (names wrap).
+  wrap.innerHTML = '<div class="canvas" id="canvas"><svg class="wires" id="wires"></svg>'
+    + MATCHES.map(matchCard).join('') + '</div>';
+  const canvas = document.getElementById('canvas');
+  const el = {}; MATCHES.forEach(m => { el[m.id] = canvas.querySelector('.match[data-id="' + m.id + '"]'); });
+  MATCHES.forEach(m => {
+    el[m.id].style.left = (colIdx[m.bracket + '|' + m.round] * (CARD_W + COL_GAP)) + 'px';
+    el[m.id].style.top = '0px';
+  });
+  const H = {}; MATCHES.forEach(m => { H[m.id] = el[m.id].offsetHeight; });
+
+  // Vertical layout: each game centers on its same-section feeders; round-1
+  // (and cross-section-fed) games stack evenly. Sections stack top to bottom.
+  const CY = {}; const bands = []; let bandY = 0, maxRight = 0;
+  SEC.forEach(([bk, title]) => {
     const ms = MATCHES.filter(m => m.bracket === bk);
     if (!ms.length) return;
+    bands.push({ title, bk, y: bandY });
+    const top = bandY + TITLE_H;
+    const idset = new Set(ms.map(m => m.id));
     const rounds = [...new Set(ms.map(m => m.round))];
-    html += `<div class="section"><div class="sec-title">${title}</div><div class="cols">`;
+    let bottom = top;
     rounds.forEach(rd => {
-      const col = ms.filter(m => m.round === rd).sort((a,b) => a.id - b.id);
-      html += `<div class="col"><div class="col-h">${rd}</div>`;
-      col.forEach(m => { html += matchCard(m); });
-      html += '</div>';
+      const col = ms.filter(m => m.round === rd)
+        .map(m => {
+          const fs = sameSectionFeeders(m, idset).filter(id => CY[id] != null);
+          const d = fs.length ? fs.reduce((s, id) => s + CY[id], 0) / fs.length : null;
+          return { m, d };
+        })
+        .sort((a, b) => (a.d == null ? 1e12 : a.d) - (b.d == null ? 1e12 : b.d) || a.m.id - b.m.id);
+      let cursor = top;
+      col.forEach(({ m, d }) => {
+        const h = H[m.id];
+        let y = d != null ? d - h / 2 : cursor;
+        if (y < cursor) y = cursor;
+        el[m.id].style.top = y + 'px';
+        CY[m.id] = y + h / 2;
+        cursor = y + h + GAME_GAP;
+        bottom = Math.max(bottom, y + h);
+      });
+      maxRight = Math.max(maxRight, colIdx[bk + '|' + rd] * (CARD_W + COL_GAP) + CARD_W);
     });
-    html += '</div></div>';
+    bandY = bottom + SECTION_GAP;
   });
-  document.getElementById('bracket').innerHTML = html;
+
+  bands.forEach(b => {
+    const d = document.createElement('div');
+    d.className = 'band-title'; d.textContent = b.title;
+    d.style.top = b.y + 'px'; d.style.color = 'var(--' + b.bk + ')';
+    canvas.appendChild(d);
+  });
+  canvas.style.width = (maxRight + 8) + 'px';
+  canvas.style.height = bandY + 'px';
+  drawWires(canvas, el);
+}
+
+// Elbow connectors from each feeder game to the slot it feeds.
+function drawWires(canvas, el) {
+  const svg = document.getElementById('wires');
+  const cr = canvas.getBoundingClientRect();
+  svg.setAttribute('width', parseFloat(canvas.style.width));
+  svg.setAttribute('height', parseFloat(canvas.style.height));
+  let d = '';
+  MATCHES.forEach(m => {
+    const tc = el[m.id].getBoundingClientRect();
+    ['a', 'b'].forEach(side => {
+      const ref = parseRef(side === 'a' ? m.team_a : m.team_b);
+      if (!ref || !el[ref.ref]) return;
+      const sc = el[ref.ref].getBoundingClientRect();
+      const sl = el[m.id].querySelector('.slot[data-side="' + side + '"]').getBoundingClientRect();
+      const x1 = sc.right - cr.left, y1 = sc.top - cr.top + sc.height / 2;
+      const x2 = tc.left - cr.left, y2 = sl.top - cr.top + sl.height / 2;
+      const mx = (x1 + x2) / 2;
+      d += '<path class="wire' + (ref.kind === 'L' ? ' loser' : '') + '" d="M' + x1 + ' ' + y1
+        + ' H' + mx + ' V' + y2 + ' H' + x2 + '"/>';
+    });
+  });
+  svg.innerHTML = d;
 }
 
 document.getElementById('bracket').addEventListener('click', e => {
@@ -224,6 +308,8 @@ document.getElementById('btn-clear').addEventListener('click', () => {
 
 loadWinners();
 render();
+// Re-layout once the web font loads (card heights change → connector accuracy).
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(render);
 </script></body></html>
 """
 
