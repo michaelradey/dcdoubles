@@ -46,11 +46,18 @@ def newest_csv():
     return files[-1] if files else None
 
 
+# Seeding priority within a combined bracket (lower = higher seed). The stronger
+# level gets the top seeds, so standard bracket seeding spreads them to opposite
+# halves and they only meet late (e.g. the two Open teams end up seeds 1 & 2).
+LEVEL_RANK = {"Open": 0, "A": 1, "BB": 2, "B": 3}
+
+
 def load_teams_from_csv(path):
     """Build {slug: [team_name, ...]} from a registration export.
 
-    Team name is "Full Name 1 / Full Name 2" (from the roster parser); teams are
-    grouped into the four brackets by division + level, in CSV order.
+    Team name is "Full Name 1 / Full Name 2" (from the roster parser). Teams are
+    grouped into the four brackets by division + level, then seeded by level
+    strength (CSV order breaks ties within a level).
     """
     text = open(path, encoding="utf-8-sig").read()
     teams = parse_teams(text, {"Men", "Women", "Coed"})   # Coed rows are ignored below
@@ -58,8 +65,9 @@ def load_teams_from_csv(path):
     for t in teams:
         for slug, (gender, levels) in LEVEL_GROUPS.items():
             if t["division"] == gender and t["level"] in levels:
-                out[slug].append(t["name"])
-    return out
+                out[slug].append(t)
+    return {slug: [t["name"] for t in sorted(ts, key=lambda t: LEVEL_RANK.get(t["level"], 9))]
+            for slug, ts in out.items()}
 
 DOCS_DIR = os.path.join(os.path.dirname(__file__), "docs")
 
