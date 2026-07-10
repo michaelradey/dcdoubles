@@ -2,38 +2,35 @@
 """
 generate_brackets.py
 
-Edit the TEAMS dict below, then run:
+Builds the four double-elimination bracket pages (Men's/Women's A&Open and
+B&BB) into docs/ for GitHub Pages, from a registration CSV export.
 
-    python generate_brackets.py
+    python generate_brackets.py                 # uses newest upload/*.csv
+    python generate_brackets.py path/to/roster.csv
 
-Outputs pre-built bracket HTML into docs/ for GitHub Pages.
+Team names are "Full Name 1 / Full Name 2" and are grouped by division + level.
 Push the result and the site updates automatically.
 """
+import glob
 import json
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
 from tournament.double_elim import build_de_bracket
+from tournament.roster import parse_teams
 
-# ─────────────────────────────────────────────────────────────────────────────
-# EDIT THIS — one list of team names per division, in seed order.
-# ─────────────────────────────────────────────────────────────────────────────
-TEAMS: dict[str, list[str]] = {
-    "mens-a-open": [
-        # "Smith / Jones",
-        # "Lee / Park",
-    ],
-    "mens-b-bb": [
-        # "Smith / Jones",
-    ],
-    "womens-a-open": [
-        # "Smith / Jones",
-    ],
-    "womens-b-bb": [
-        # "Smith / Jones",
-    ],
+# Each output bracket = one gender + a pair of levels. Seed order follows the
+# CSV row order within the group.
+LEVEL_GROUPS: dict[str, tuple[str, set[str]]] = {
+    "mens-a-open":   ("Men",   {"A", "Open"}),
+    "mens-b-bb":     ("Men",   {"B", "BB"}),
+    "womens-a-open": ("Women", {"A", "Open"}),
+    "womens-b-bb":   ("Women", {"B", "BB"}),
 }
+
+# Populated from the registration CSV at run time (see load_teams_from_csv).
+TEAMS: dict[str, list[str]] = {slug: [] for slug in LEVEL_GROUPS}
 
 LABELS: dict[str, str] = {
     "mens-a-open":   "Men's A & Open",
@@ -41,6 +38,28 @@ LABELS: dict[str, str] = {
     "womens-a-open": "Women's A & Open",
     "womens-b-bb":   "Women's B & BB",
 }
+
+
+def newest_csv():
+    """Most recent CSV in upload/ (filenames are timestamped, so sort works)."""
+    files = sorted(glob.glob(os.path.join(os.path.dirname(__file__), "upload", "*.csv")))
+    return files[-1] if files else None
+
+
+def load_teams_from_csv(path):
+    """Build {slug: [team_name, ...]} from a registration export.
+
+    Team name is "Full Name 1 / Full Name 2" (from the roster parser); teams are
+    grouped into the four brackets by division + level, in CSV order.
+    """
+    text = open(path, encoding="utf-8-sig").read()
+    teams = parse_teams(text, {"Men", "Women", "Coed"})   # Coed rows are ignored below
+    out = {slug: [] for slug in LEVEL_GROUPS}
+    for t in teams:
+        for slug, (gender, levels) in LEVEL_GROUPS.items():
+            if t["division"] == gender and t["level"] in levels:
+                out[slug].append(t["name"])
+    return out
 
 DOCS_DIR = os.path.join(os.path.dirname(__file__), "docs")
 
@@ -72,12 +91,12 @@ button:hover{opacity:.7}button:active{opacity:.5}
 .section:nth-child(2) .sec-title{color:var(--LB)}
 .section:nth-child(3) .sec-title{color:var(--GF)}
 .cols{display:flex;gap:20px;align-items:flex-start}
-.col{display:flex;flex-direction:column;gap:16px;min-width:200px}
+.col{display:flex;flex-direction:column;gap:16px;min-width:230px}
 .col-h{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);text-align:center;margin-bottom:2px}
 .match{background:var(--sur);border:1px solid var(--brd);border-radius:10px;padding:8px;position:relative}
 .mnum{position:absolute;top:-8px;left:8px;background:var(--bg);border:1px solid var(--brd);border-radius:5px;font-size:.6rem;color:var(--mut);padding:1px 5px}
 .slot{display:flex;align-items:center;gap:6px;padding:3px 0}
-.team{flex:1;font-size:.82rem;padding:7px 8px;border-radius:6px;border:1.5px solid var(--brd);background:var(--bg);color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.team{flex:1;font-size:.8rem;padding:6px 8px;border-radius:6px;border:1.5px solid var(--brd);background:var(--bg);color:var(--txt);line-height:1.3;overflow-wrap:anywhere}
 .team.pending{color:var(--mut);font-style:italic}
 .slot.won .team{border-color:var(--win);color:var(--win);font-weight:500}
 .slot.lost .team{opacity:.4}
@@ -261,9 +280,17 @@ footer{{margin-top:60px;font-size:.72rem;color:var(--mut);text-align:center}}
 """
 
 
-def generate():
+def generate(csv_path=None):
     import hashlib
     import datetime
+
+    csv_path = csv_path or newest_csv()
+    if csv_path:
+        global TEAMS
+        TEAMS = load_teams_from_csv(csv_path)
+        print(f"loaded teams from {os.path.basename(csv_path)}")
+    else:
+        print("no CSV found in upload/ — generating empty brackets")
 
     os.makedirs(DOCS_DIR, exist_ok=True)
     year = datetime.date.today().year
@@ -312,4 +339,4 @@ def generate():
 
 
 if __name__ == "__main__":
-    generate()
+    generate(sys.argv[1] if len(sys.argv) > 1 else None)
