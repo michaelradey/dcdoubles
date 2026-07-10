@@ -4,298 +4,154 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#0e0f11;--sur:#17191d;--brd:#2a2d33;--acc:#c8f135;--acc2:#4af0c4;--txt:#e8eaed;--mut:#6b7280;--err:#f87171;--win:#4af0c4;--WB:#7dd3fc;--LB:#fdba74;--GF:#d8b4fe}
+:root{--bg:#0e0f11;--sur:#17191d;--brd:#2a2d33;--acc:#c8f135;--acc2:#4af0c4;--txt:#e8eaed;--mut:#6b7280;--win:#4af0c4;--WB:#7dd3fc;--LB:#fdba74;--GF:#d8b4fe}
 body{font-family:'DM Mono',monospace;background:var(--bg);color:var(--txt);min-height:100vh;padding:32px 20px 80px}
-header{text-align:center;margin-bottom:28px}
+header{text-align:center;margin-bottom:32px}
 h1{font-family:'Syne',sans-serif;font-size:clamp(1.6rem,4vw,2.6rem);font-weight:800;letter-spacing:-.03em;color:var(--acc)}
-header p{margin-top:10px;color:var(--mut);font-size:.8rem;letter-spacing:.05em}
-header a{color:var(--acc2);text-decoration:none}
-.setup{max-width:760px;margin:0 auto 28px;background:var(--sur);border:1px solid var(--brd);border-radius:14px;padding:24px}
-.setup label{display:block;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);margin-bottom:8px}
-.setup input[type=text],.setup textarea{width:100%;background:var(--bg);border:1.5px solid var(--brd);border-radius:8px;color:var(--txt);font-family:'DM Mono',monospace;font-size:.9rem;padding:12px;outline:none;resize:vertical}
-.setup input[type=text]:focus,.setup textarea:focus{border-color:var(--acc)}
-.setup textarea{min-height:120px;margin-bottom:6px}
-.hint{font-size:.72rem;color:var(--mut);margin-bottom:16px;line-height:1.6}
-.btnrow{display:flex;gap:10px;flex-wrap:wrap}
-button{background:var(--acc);color:#0e0f11;border:none;border-radius:9px;font-family:'Syne',sans-serif;font-size:.85rem;font-weight:800;letter-spacing:.05em;padding:13px 20px;cursor:pointer;transition:opacity .2s,transform .1s}
-button:hover{opacity:.9}button:active{transform:scale(.98)}
-button.ghost{background:transparent;color:var(--mut);border:1px solid var(--brd)}
-#bstatus{margin-top:14px;font-size:.8rem;color:var(--mut);min-height:18px}
-#bstatus.err{color:var(--err)}#bstatus.ok{color:var(--acc2)}
-#bracket{overflow-x:auto;padding-bottom:20px}
+.sub{margin-top:10px;color:var(--mut);font-size:.8rem;letter-spacing:.05em}
+.sub a{color:var(--acc2);text-decoration:none}
+.toolbar{max-width:900px;margin:0 auto 24px;display:flex;gap:10px;justify-content:flex-end}
+button{background:transparent;color:var(--mut);border:1px solid var(--brd);border-radius:9px;font-family:'Syne',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.05em;padding:9px 16px;cursor:pointer;transition:opacity .2s}
+button:hover{opacity:.7}button:active{opacity:.5}
+.empty{max-width:900px;margin:60px auto;text-align:center;color:var(--mut);font-size:.85rem;line-height:2}
+#bracket{overflow-x:auto;padding-bottom:20px;max-width:900px;margin:0 auto}
 .section{margin-bottom:36px}
 .sec-title{font-family:'Syne',sans-serif;font-size:.9rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px;padding-left:2px}
 .section:nth-child(1) .sec-title{color:var(--WB)}
 .section:nth-child(2) .sec-title{color:var(--LB)}
 .section:nth-child(3) .sec-title{color:var(--GF)}
 .cols{display:flex;gap:20px;align-items:flex-start}
-.col{display:flex;flex-direction:column;gap:16px;min-width:190px;justify-content:space-around}
+.col{display:flex;flex-direction:column;gap:16px;min-width:200px}
 .col-h{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);text-align:center;margin-bottom:2px}
 .match{background:var(--sur);border:1px solid var(--brd);border-radius:10px;padding:8px;position:relative}
 .mnum{position:absolute;top:-8px;left:8px;background:var(--bg);border:1px solid var(--brd);border-radius:5px;font-size:.6rem;color:var(--mut);padding:1px 5px}
 .slot{display:flex;align-items:center;gap:6px;padding:3px 0}
-.slot-input{flex:1;background:var(--bg);border:1.5px solid var(--brd);border-radius:6px;color:var(--txt);font-family:'DM Mono',monospace;font-size:.82rem;padding:7px 8px;outline:none;min-width:0}
-.slot-input:focus{border-color:var(--acc)}
-.slot-input::placeholder{color:#4a4f57;font-style:italic}
-.slot.won .slot-input{border-color:var(--win);color:var(--win);font-weight:500}
-.slot.lost .slot-input{opacity:.5}
-.win{padding:0;width:24px;height:24px;flex:none;background:transparent;border:1.5px solid var(--brd);border-radius:6px;color:var(--mut);font-size:.8rem;line-height:1;display:flex;align-items:center;justify-content:center}
-.slot.won .win{background:var(--win);border-color:var(--win);color:#0e0f11}
-.reset{padding:0;width:22px;height:24px;flex:none;background:transparent;border:none;color:var(--mut);font-size:.9rem;cursor:pointer;opacity:.5}
-.reset:hover{opacity:1;color:var(--acc)}
+.team{flex:1;font-size:.82rem;padding:7px 8px;border-radius:6px;border:1.5px solid var(--brd);background:var(--bg);color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.team.pending{color:var(--mut);font-style:italic}
+.slot.won .team{border-color:var(--win);color:var(--win);font-weight:500}
+.slot.lost .team{opacity:.4}
+.win-btn{flex:none;width:24px;height:24px;background:transparent;border:1.5px solid var(--brd);border-radius:6px;color:var(--mut);font-size:.8rem;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.slot.won .win-btn{background:var(--win);border-color:var(--win);color:#0e0f11}
 .mnote{font-size:.62rem;color:var(--mut);font-style:italic;padding:4px 2px 2px;line-height:1.4}
 footer{text-align:center;margin-top:40px;font-size:.72rem;color:var(--mut)}
 @media print{
   body{background:#fff;color:#000;padding:0}
-  .setup,header p,footer,.win,.reset{display:none!important}
+  .toolbar,header .sub,footer{display:none!important}
   .match{border-color:#999;background:#fff;break-inside:avoid}
-  .slot-input{border-color:#ccc;color:#000;background:#fff}
-  .slot.won .slot-input{color:#000;font-weight:700;border-color:#000}
+  .team{border-color:#ccc;color:#000;background:#fff}
+  .slot.won .team{color:#000;font-weight:700;border-color:#000}
   h1,.sec-title{color:#000}
 }
 </style></head><body>
 <header>
   <h1>WOMEN'S A & OPEN</h1>
-  <p>Double Elimination Bracket &nbsp;&#183;&nbsp; <a href="index.html">&larr; all divisions</a></p>
+  <p class="sub">Double Elimination &nbsp;&#183;&nbsp; <a href="index.html">&larr; all divisions</a></p>
 </header>
 
-<div class="setup">
-  <label for="name">Division</label>
-  <input type="text" id="name" value="Women's A & Open" autocomplete="off">
-  <label for="teams" style="margin-top:16px">Teams &mdash; one per line, in seed order</label>
-  <textarea id="teams" placeholder="Team 1 (top seed)&#10;Team 2&#10;Team 3&#10;Team 4&#10;..."></textarea>
-  <div class="hint">First team = top seed. Byes are added automatically when the count isn't a power of two. Rebuilding reseeds and clears results.</div>
-  <div class="btnrow">
-    <button id="build">BUILD BRACKET</button>
-    <button id="print" class="ghost">PRINT</button>
-    <button id="clear" class="ghost">CLEAR ALL</button>
-  </div>
-  <div id="bstatus"></div>
+<div class="toolbar">
+  <button id="btn-print">PRINT</button>
+  <button id="btn-clear">RESET RESULTS</button>
 </div>
 
 <div id="bracket"></div>
-<footer>Progress is saved in this browser automatically &mdash; DC Doubles 2026</footer>
+<footer>Results saved in your browser &mdash; DC Doubles 2026</footer>
 
 <script>
-// ── Bracket data pre-loaded by generate_brackets.py ──
-const INITIAL_DATA = null;
+const MATCHES = [];
+const LS_KEY  = 'winners_womens-a-opend41d8cd9';
 
-// ── Pure-JS port of tournament/double_elim.py :: build_de_bracket ──
-function bracketSeeding(B) {
-  if (B === 1) return [1];
-  const h = bracketSeeding(B / 2), r = [];
-  for (const x of h) { r.push(x); r.push(B + 1 - x); }
-  return r;
+// winner[matchId] = 'a' | 'b' | null
+let winner = {};
+
+function loadWinners() {
+  try { winner = JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch(e) { winner = {}; }
 }
-function buildDeBracket(level, teams) {
-  const n = teams.length; let B = 1;
-  while (B < n) B *= 2;
-  const seedOrder = bracketSeeding(B);
-  let midC = 0; const all = [];
-  function nm(ta, tad, tb, tbd, bracket, rnd, note='') {
-    midC++;
-    all.push({ id:midC, bracket, round:rnd, team_a:ta||'', team_b:tb||'', note,
-                deps:[tad,tbd].filter(d=>d!=null) });
-    return midC;
-  }
-  function slotFn(s) { return s<=n ? [teams[s-1],null] : [null,null]; }
-  let wb = seedOrder.map(slotFn), wbLosers = [], wbR = 1;
-  while (wb.length > 1) {
-    const nWb=[], rl=[];
-    for (let i=0;i<wb.length;i+=2) {
-      const [ta,tad]=wb[i], [tb,tbd]=wb[i+1];
-      if (ta===null&&tb===null) { nWb.push([null,null]); }
-      else if (ta===null) { nWb.push([tb,tbd]); }
-      else if (tb===null) { nWb.push([ta,tad]); }
-      else {
-        const m=nm(ta,tad,tb,tbd,'WB',`R${wbR}`);
-        nWb.push([`M${m} Winner`,m]); rl.push([`M${m} Loser`,m]);
-      }
-    }
-    wbLosers.push(rl); wb=nWb; wbR++;
-  }
-  const wbChamp=wb[0]; const lr=[1];
-  function lbElim(slots) {
-    const res=[];
-    for (let i=0;i<slots.length;i+=2) {
-      const a=slots[i], b=i+1<slots.length?slots[i+1]:null;
-      if (!b) { res.push(a); }
-      else {
-        const [ta,tad]=a, [tb,tbd]=b;
-        const m=nm(ta,tad,tb,tbd,'LB',`R${lr[0]}`);
-        res.push([`M${m} Winner`,m]);
-      }
-    }
-    lr[0]++; return res;
-  }
-  let cur = wbLosers[0]||[];
-  for (let i=1;i<wbLosers.length-1;i++) {
-    if (cur.length>1) cur=lbElim(cur);
-    cur=lbElim([...cur,...wbLosers[i]]);
-  }
-  while (cur.length>1) cur=lbElim(cur);
-  const [lbL,lbD]=cur[0]||[null,null];
-  const lastLosers=wbLosers[wbLosers.length-1]||[];
-  const [wflL,wflD]=lastLosers[0]||[null,null];
-  if (lbL&&wflL) {
-    const lf=nm(lbL,lbD,wflL,wflD,'LB','Final');
-    const [wcL,wcD]=wbChamp;
-    const gf=nm(wcL,wcD,`M${lf} Winner`,lf,'GF','Grand Final');
-    nm(`M${gf} Winner`,gf,`M${gf} Loser`,gf,'GF','Grand Final Reset',
-       'Only played if Losers Bracket team wins Grand Final');
-  }
-  return all.map(m=>({id:m.id,bracket:m.bracket,round:m.round,team_a:m.team_a,team_b:m.team_b,note:m.note}));
+function saveWinners() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(winner)); } catch(e) {}
 }
 
-// ── Bracket state ──
-let NAME='', TEAMS=[], MATCHES=[], byId={}, seed={}, override={}, winner={};
-const LS_KEY='de_bracket_womens-a-open';
+function parseRef(s) {
+  const m = /^M(\d+) (Winner|Loser)$/.exec(s || '');
+  return m ? {ref: +m[1], kind: m[2] === 'Winner' ? 'W' : 'L'} : null;
+}
+const byId = {};
+MATCHES.forEach(m => { byId[m.id] = m; });
 
-function parseSlot(s) {
-  const m=/^M(\d+) (Winner|Loser)$/.exec(s||'');
-  if (m) return {type:'ref',src:+m[1],kind:m[2]==='Winner'?'W':'L'};
-  return {type:'seed',name:s||''};
+function resolveTeam(s, depth) {
+  if (depth > 50) return null;
+  const ref = parseRef(s);
+  if (!ref) return s || null;
+  const w = winner[ref.ref];
+  if (!w) return null;
+  const src = byId[ref.ref];
+  const chosen = ref.kind === 'W' ? w : (w === 'a' ? 'b' : 'a');
+  return resolveTeam(chosen === 'a' ? src.team_a : src.team_b, depth + 1);
 }
-function slotStr(m,side){ return side==='a'?m.team_a:m.team_b; }
-function other(side){ return side==='a'?'b':'a'; }
-function resolve(id,side,depth) {
-  depth=depth||0; if(depth>200) return '';
-  const key=id+'_'+side, d=parseSlot(slotStr(byId[id],side));
-  if(d.type==='seed') return (key in seed)?seed[key]:d.name;
-  if(key in override) return override[key];
-  const w=winner[d.src];
-  if(!w) return '';
-  return d.kind==='W'?resolve(d.src,w,depth+1):resolve(d.src,other(w),depth+1);
+
+function slotHTML(m, side) {
+  const raw  = side === 'a' ? m.team_a : m.team_b;
+  const name = resolveTeam(raw, 0);
+  const ref  = parseRef(raw);
+  const isPending = !name && !!ref;
+  const displayName = name || (ref ? (ref.kind==='W'?'Winner':'Loser')+' of M'+ref.ref : '\u2014');
+  const w = winner[m.id];
+  const wonClass  = w === side ? ' won'  : '';
+  const lostClass = (w && w !== side) ? ' lost' : '';
+  return `<div class="slot${wonClass}${lostClass}" data-id="${m.id}" data-side="${side}">
+    <button class="win-btn" data-id="${m.id}" data-side="${side}" title="Mark winner">&#10003;</button>
+    <div class="team${isPending?' pending':''}">${displayName}</div>
+  </div>`;
 }
-function initState() {
-  seed={};override={};winner={};
-  MATCHES.forEach(m=>{
-    ['a','b'].forEach(side=>{
-      const d=parseSlot(slotStr(m,side));
-      if(d.type==='seed') seed[m.id+'_'+side]=d.name;
-    });
-    winner[m.id]=null;
-  });
-}
-function slotHTML(m,side) {
-  const d=parseSlot(slotStr(m,side));
-  const ph=d.type==='ref'?(d.kind==='W'?'Winner':'Loser')+' of M'+d.src:'Team';
-  const reset=d.type==='ref'?'<button class="reset" data-id="'+m.id+'" data-side="'+side+'" title="Reset to auto">&#8635;</button>':'';
-  return '<div class="slot" data-id="'+m.id+'" data-side="'+side+'">'
-    +'<button class="win" data-id="'+m.id+'" data-side="'+side+'" title="Mark winner">&#10003;</button>'
-    +'<input class="slot-input" data-id="'+m.id+'" data-side="'+side+'" placeholder="'+ph+'" autocomplete="off">'
-    +reset+'</div>';
-}
+
 function matchCard(m) {
-  return '<div class="match" data-id="'+m.id+'"><div class="mnum">M'+m.id+'</div>'
-    +slotHTML(m,'a')+slotHTML(m,'b')
-    +(m.note?'<div class="mnote">'+m.note+'</div>':'')+'</div>';
+  return `<div class="match" data-id="${m.id}">
+    <div class="mnum">M${m.id}</div>
+    ${slotHTML(m,'a')}${slotHTML(m,'b')}
+    ${m.note ? `<div class="mnote">${m.note}</div>` : ''}
+  </div>`;
 }
+
 function render() {
-  const wrap=document.getElementById('bracket');
-  if(!MATCHES.length){wrap.innerHTML='';return;}
-  const sections=[['WB','Winners Bracket'],['LB','Losers Bracket'],['GF','Grand Final']];
-  let html='';
-  sections.forEach(([bk,title])=>{
-    const ms=MATCHES.filter(m=>m.bracket===bk);
-    if(!ms.length) return;
-    const rounds=[...new Set(ms.map(m=>m.round))];
-    html+='<div class="section"><div class="sec-title">'+title+'</div><div class="cols">';
-    rounds.forEach(rd=>{
-      const col=ms.filter(m=>m.round===rd).sort((a,b)=>a.id-b.id);
-      html+='<div class="col"><div class="col-h">'+rd+'</div>';
-      col.forEach(m=>{html+=matchCard(m);});
-      html+='</div>';
-    });
-    html+='</div></div>';
-  });
-  wrap.innerHTML=html;
-  refresh();
-}
-function refresh() {
-  const foc=document.activeElement;
-  document.querySelectorAll('.slot-input').forEach(inp=>{
-    const id=+inp.dataset.id,side=inp.dataset.side;
-    if(inp!==foc) inp.value=resolve(id,side);
-    const slot=inp.closest('.slot');
-    slot.classList.toggle('won',winner[id]===side);
-    slot.classList.toggle('lost',!!winner[id]&&winner[id]!==side);
-  });
-  save();
-}
-function save() {
-  try{ localStorage.setItem(LS_KEY,
-    JSON.stringify({name:NAME,teams:TEAMS,matches:MATCHES,seed,override,winner})); }catch(e){}
-}
-function load() {
-  try{
-    const s=JSON.parse(localStorage.getItem(LS_KEY)||'null');
-    if(s&&s.matches&&s.matches.length){
-      NAME=s.name||'';TEAMS=s.teams||[];MATCHES=s.matches;
-      byId={};MATCHES.forEach(m=>{byId[m.id]=m;});
-      seed=s.seed||{};override=s.override||{};winner=s.winner||{};
-      document.getElementById('name').value=NAME;
-      document.getElementById('teams').value=TEAMS.join('\n');
-      render();return true;
-    }
-  }catch(e){}
-  return false;
-}
-function loadInitial() {
-  if(!INITIAL_DATA) return false;
-  NAME=INITIAL_DATA.name||'';TEAMS=INITIAL_DATA.teams||[];MATCHES=INITIAL_DATA.matches||[];
-  byId={};MATCHES.forEach(m=>{byId[m.id]=m;});
-  initState();
-  document.getElementById('name').value=NAME;
-  document.getElementById('teams').value=TEAMS.join('\n');
-  render();
-  document.getElementById('bstatus').className='ok';
-  document.getElementById('bstatus').textContent='✓ '+TEAMS.length+' teams · '+MATCHES.length+' matches (pre-loaded)';
-  return true;
-}
-
-function build() {
-  const name=document.getElementById('name').value.trim();
-  const teamsRaw=document.getElementById('teams').value;
-  const st=document.getElementById('bstatus');
-  if(MATCHES.length&&Object.values(winner).some(w=>w)){
-    if(!confirm('Rebuild will reseed and clear current results. Continue?')) return;
+  if (!MATCHES.length) {
+    document.getElementById('bracket').innerHTML =
+      '<div class="empty">No teams yet.<br>Edit TEAMS in generate_brackets.py and re-run it.</div>';
+    return;
   }
-  const teams=[...new Set(teamsRaw.replace(/\r/g,'').split('\n').map(t=>t.trim()).filter(Boolean))];
-  if(teams.length<2){st.className='err';st.textContent='✗ Enter at least 2 teams (one per line).';return;}
-  if(teams.length>64){st.className='err';st.textContent='✗ Maximum 64 teams.';return;}
-  NAME=name;TEAMS=teams;
-  MATCHES=buildDeBracket(name||'DE',teams);
-  byId={};MATCHES.forEach(m=>{byId[m.id]=m;});
-  initState();render();
-  st.className='ok';st.textContent='✓ '+TEAMS.length+' teams · '+MATCHES.length+' matches';
+  const sections = [['WB','Winners Bracket'],['LB','Losers Bracket'],['GF','Grand Final']];
+  let html = '';
+  sections.forEach(([bk, title]) => {
+    const ms = MATCHES.filter(m => m.bracket === bk);
+    if (!ms.length) return;
+    const rounds = [...new Set(ms.map(m => m.round))];
+    html += `<div class="section"><div class="sec-title">${title}</div><div class="cols">`;
+    rounds.forEach(rd => {
+      const col = ms.filter(m => m.round === rd).sort((a,b) => a.id - b.id);
+      html += `<div class="col"><div class="col-h">${rd}</div>`;
+      col.forEach(m => { html += matchCard(m); });
+      html += '</div>';
+    });
+    html += '</div></div>';
+  });
+  document.getElementById('bracket').innerHTML = html;
 }
 
-const bracketEl=document.getElementById('bracket');
-bracketEl.addEventListener('input',e=>{
-  if(!e.target.classList.contains('slot-input')) return;
-  const id=+e.target.dataset.id,side=e.target.dataset.side,key=id+'_'+side;
-  const d=parseSlot(slotStr(byId[id],side));
-  if(d.type==='seed') seed[key]=e.target.value; else override[key]=e.target.value;
-  refresh();
-});
-bracketEl.addEventListener('click',e=>{
-  const b=e.target.closest('button');if(!b) return;
-  const id=+b.dataset.id,side=b.dataset.side;
-  if(b.classList.contains('win')){winner[id]=winner[id]===side?null:side;refresh();}
-  else if(b.classList.contains('reset')){delete override[id+'_'+side];refresh();}
-});
-document.getElementById('build').addEventListener('click',build);
-document.getElementById('print').addEventListener('click',()=>window.print());
-document.getElementById('clear').addEventListener('click',()=>{
-  if(!confirm('Clear the bracket and all results?')) return;
-  NAME='';TEAMS=[];MATCHES=[];byId={};seed={};override={};winner={};
-  try{localStorage.removeItem(LS_KEY);}catch(e){}
-  document.getElementById('name').value='';document.getElementById('teams').value='';
-  document.getElementById('bracket').innerHTML='';
-  document.getElementById('bstatus').textContent='';
+document.getElementById('bracket').addEventListener('click', e => {
+  const btn = e.target.closest('.win-btn');
+  if (!btn) return;
+  const id = +btn.dataset.id, side = btn.dataset.side;
+  winner[id] = winner[id] === side ? null : side;
+  saveWinners();
+  render();
 });
 
-// Load: saved state wins, then pre-loaded data, then blank
-if(!load()) loadInitial();
+document.getElementById('btn-print').addEventListener('click', () => window.print());
+document.getElementById('btn-clear').addEventListener('click', () => {
+  if (!confirm('Reset all results?')) return;
+  winner = {};
+  try { localStorage.removeItem(LS_KEY); } catch(e) {}
+  render();
+});
+
+loadWinners();
+render();
 </script></body></html>
