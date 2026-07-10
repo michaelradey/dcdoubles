@@ -104,35 +104,54 @@ def build_de_bracket(level, teams):
         next_wb, rl = [], []
         for i in range(0, len(wb), 2):
             ta,ta_d = wb[i]; tb,tb_d = wb[i+1]
-            if ta is None and tb is None: next_wb.append((None,None))
-            elif ta is None: next_wb.append((tb,tb_d))
-            elif tb is None: next_wb.append((ta,ta_d))
-            else:
+            if ta is not None and tb is not None:
                 m = new_m(ta,ta_d,tb,tb_d,'WB',f'R{wb_r}')
                 next_wb.append((f'M{m} Winner',m)); rl.append((f'M{m} Loser',m))
-        wb_losers.append(rl); wb = next_wb; wb_r += 1
-    wb_champ = wb[0]; lr = [1]
-    def lb_elim(slots):
-        res = []
-        for i in range(0, len(slots), 2):
-            a = slots[i]; b = slots[i+1] if i+1 < len(slots) else None
-            if b is None: res.append(a)
             else:
-                ta,ta_d=a; tb,tb_d=b
-                m=new_m(ta,ta_d,tb,tb_d,'LB',f'R{lr[0]}')
-                res.append((f'M{m} Winner',m))
-        lr[0] += 1; return res
-    cur = wb_losers[0]
-    for nl in wb_losers[1:-1]:
-        if len(cur) > 1: cur = lb_elim(cur)
-        cur = lb_elim(cur + nl)
-    while len(cur) > 1: cur = lb_elim(cur)
-    lb_l,lb_d = cur[0] if cur else (None,None)
-    wfl_l,wfl_d = (wb_losers[-1][0] if wb_losers and wb_losers[-1] else (None,None))
-    if lb_l and wfl_l:
-        lf = new_m(lb_l,lb_d,wfl_l,wfl_d,'LB','Final')
-        wc_l,wc_d = wb_champ
-        new_m(wc_l,wc_d,f'M{lf} Winner',lf,'GF','Grand Final')
+                # bye/empty: the present team (if any) advances; no loser here.
+                next_wb.append((ta,ta_d) if ta is not None else (tb,tb_d))
+                rl.append((None,None))   # keep loser lists full-length for LB pairing
+        wb_losers.append(rl); wb = next_wb; wb_r += 1
+    wb_champ = wb[0]; lr = [0]
+
+    def lb_game(a, b, rlabel):
+        """One LB match, propagating byes (a lone team advances; empties stay empty)."""
+        ta,ta_d = a; tb,tb_d = b
+        if ta is None and tb is None: return (None,None)
+        if ta is None: return (tb,tb_d)
+        if tb is None: return (ta,ta_d)
+        m = new_m(ta,ta_d,tb,tb_d,'LB',rlabel)
+        return (f'M{m} Winner', m)
+
+    def lb_pair(slots, rlabel):
+        """Major round: LB survivors play each other."""
+        return [lb_game(slots[i], slots[i+1] if i+1 < len(slots) else (None,None), rlabel)
+                for i in range(0, len(slots), 2)]
+
+    def lb_drop(surv, drops, rlabel):
+        """Minor round: each LB survivor plays a fresh WB drop-down (one-to-one)."""
+        return [lb_game(s, d, rlabel) for s, d in zip(surv, drops)]
+
+    # LB R1 pairs the WB R1 losers; then each WB round drops down into a minor
+    # round (survivor vs drop-down), followed by a major round (survivor vs
+    # survivor) — except the final drop, which is the LB final.
+    lb_champ = (None,None)
+    if wb_losers:
+        lr[0] += 1
+        cur = lb_pair(wb_losers[0], f'R{lr[0]}')
+        for r in range(1, len(wb_losers)):
+            last = (r == len(wb_losers) - 1)
+            lr[0] += 1
+            cur = lb_drop(cur, wb_losers[r], 'Final' if last else f'R{lr[0]}')
+            if not last and len(cur) > 1:
+                lr[0] += 1
+                cur = lb_pair(cur, f'R{lr[0]}')
+        lb_champ = cur[0] if cur else (None,None)
+
+    lb_l, lb_d = lb_champ
+    if lb_l:
+        wc_l, wc_d = wb_champ
+        new_m(wc_l, wc_d, lb_l, lb_d, 'GF', 'Grand Final')
     # Tag intro-round matches: WB R1-R3 + LB R1-R2  (DE_DUR = 40 min)
     # WB R1/R2/R3 and the LB rounds that run concurrently (LB R1 with WB R2,
     # LB R2 with WB R3) all play at the longer intro duration.
