@@ -132,9 +132,7 @@ def build_de_bracket(level, teams):
     if lb_l and wfl_l:
         lf = new_m(lb_l,lb_d,wfl_l,wfl_d,'LB','Final')
         wc_l,wc_d = wb_champ
-        gf = new_m(wc_l,wc_d,f'M{lf} Winner',lf,'GF','Grand Final')
-        new_m(f'M{gf} Winner',gf,f'M{gf} Loser',gf,'GF','Grand Final Reset',
-              note='Only played if Losers Bracket team wins Grand Final')
+        new_m(wc_l,wc_d,f'M{lf} Winner',lf,'GF','Grand Final')
     # Tag intro-round matches: WB R1-R3 + LB R1-R2  (DE_DUR = 40 min)
     # WB R1/R2/R3 and the LB rounds that run concurrently (LB R1 with WB R2,
     # LB R2 with WB R3) all play at the longer intro duration.

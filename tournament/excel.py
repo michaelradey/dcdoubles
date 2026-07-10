@@ -297,7 +297,6 @@ def build_excel(pools,de_divs,matches,bstruct,combined_info,level_end,de_end_tim
            ('Format','Teams split into groups of ≤8. Each group runs full DE bracket on 1 dedicated court (all sequential).',False,'E8D5F5','4A235A'),
            ('Match Duration','45 minutes per match.',False,'E8D5F5','4A235A'),
            ('Seeding','Random draw within each group.',False,'E8D5F5','4A235A'),
-           ('Grand Final Reset','If LB team wins the Grand Final, a reset match is played.',False,'E8D5F5','4A235A'),
            ('Combined Champ','Top 2 per group advance. 6-team combined championship: play-ins (3v6,4v5) + SF + Final.',False,'E8D5F5','4A235A'),
            ('','',False,None,'000000'),
            ('BRACKET FORMATS','',True,HDR[0],HDR[1]),
