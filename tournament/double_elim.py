@@ -129,8 +129,10 @@ def build_de_bracket(level, teams):
                 for i in range(0, len(slots), 2)]
 
     def lb_drop(surv, drops, rlabel):
-        """Minor round: each LB survivor plays a fresh WB drop-down (one-to-one)."""
-        return [lb_game(s, d, rlabel) for s, d in zip(surv, drops)]
+        """Minor round: each LB survivor plays a fresh WB drop-down. Drops are
+        reversed so a team falling from the winners bracket lands on the opposite
+        side from its own region's survivors, avoiding an immediate rematch."""
+        return [lb_game(s, d, rlabel) for s, d in zip(surv, list(reversed(drops)))]
 
     # LB R1 pairs the WB R1 losers; then each WB round drops down into a minor
     # round (survivor vs drop-down), followed by a major round (survivor vs
