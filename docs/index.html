@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DC Doubles — Brackets</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0e0f11;--sur:#17191d;--brd:#2a2d33;--acc:#c8f135;--acc2:#4af0c4;--txt:#e8eaed;--mut:#6b7280}
+body{font-family:'DM Mono',monospace;background:var(--bg);color:var(--txt);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:64px 20px 80px}
+header{text-align:center;margin-bottom:52px}
+h1{font-family:'Syne',sans-serif;font-size:clamp(2.4rem,6vw,4rem);font-weight:800;letter-spacing:-.03em;color:var(--acc);line-height:1}
+header p{margin-top:14px;color:var(--mut);font-size:.82rem;letter-spacing:.08em;text-transform:uppercase}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;width:100%;max-width:760px}
+.card{display:block;text-decoration:none;background:var(--sur);border:1px solid var(--brd);border-radius:16px;padding:28px 24px;transition:border-color .2s,transform .15s}
+.card:hover{border-color:var(--acc2);transform:translateY(-2px)}
+.card .div{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;letter-spacing:.02em;color:var(--txt);margin-bottom:6px}
+.card .sub{font-size:.74rem;color:var(--mut);letter-spacing:.05em}
+.card .arrow{margin-top:20px;font-size:.78rem;color:var(--acc2)}
+.mens .div{color:#7dd3fc}
+.womens .div{color:#f9a8d4}
+footer{margin-top:60px;font-size:.72rem;color:var(--mut);text-align:center}
+</style></head><body>
+<header>
+  <h1>DC DOUBLES</h1>
+  <p>Tournament Brackets</p>
+</header>
+<div class="grid">
+  <a class="card mens" href="mens-a-open.html">
+    <div class="div">Men's A &amp; Open</div>
+    <div class="sub">Double Elimination</div>
+    <div class="arrow">View bracket &rarr;</div>
+  </a>
+  <a class="card mens" href="mens-b-bb.html">
+    <div class="div">Men's B &amp; BB</div>
+    <div class="sub">Double Elimination</div>
+    <div class="arrow">View bracket &rarr;</div>
+  </a>
+  <a class="card womens" href="womens-a-open.html">
+    <div class="div">Women's A &amp; Open</div>
+    <div class="sub">Double Elimination</div>
+    <div class="arrow">View bracket &rarr;</div>
+  </a>
+  <a class="card womens" href="womens-b-bb.html">
+    <div class="div">Women's B &amp; BB</div>
+    <div class="sub">Double Elimination</div>
+    <div class="arrow">View bracket &rarr;</div>
+  </a>
+</div>
+<footer>DC Doubles 2026</footer>
+</body></html>
