@@ -62,7 +62,7 @@ const SLUG    = 'womens-a-open';
 const LS_KEY  = 'winners_womens-a-open98b6bcde';
 // Shared results live at a JSON path on a Firebase Realtime Database.
 // '' = per-browser localStorage only (no sharing).
-const DB_BASE = '';
+const DB_BASE = 'https://dcdoubles-3bd83-default-rtdb.firebaseio.com/';
 const REMOTE  = DB_BASE
   ? (DB_BASE.endsWith('/') ? DB_BASE.slice(0, -1) : DB_BASE) + '/brackets/' + SLUG + '.json'
   : '';

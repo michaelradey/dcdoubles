@@ -55,7 +55,7 @@ LEVEL_RANK = {"Open": 0, "A": 1, "BB": 2, "B": 3}
 # (e.g. "https://your-project-default-rtdb.firebaseio.com"). With the DB's rules
 # open, any viewer's pick writes to a JSON path and all pages poll it for live
 # updates. Leave "" to use per-browser localStorage only.
-DB_URL = ""
+DB_URL = "https://dcdoubles-3bd83-default-rtdb.firebaseio.com/"
 
 
 def load_teams_from_csv(path):
