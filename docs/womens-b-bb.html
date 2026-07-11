@@ -58,16 +58,39 @@ footer{text-align:center;margin-top:40px;font-size:.72rem;color:var(--mut)}
 
 <script>
 const MATCHES = [{"id": 1, "bracket": "WB", "round": "R1", "team_a": "Cerena Anderson / Emily Sexton", "team_b": "Paige Owen / Cassie Bryant", "note": ""}, {"id": 2, "bracket": "WB", "round": "R1", "team_a": "Gauri Jain / Sara Dyslin", "team_b": "Molly Rooney / Marta Vargues", "note": ""}, {"id": 3, "bracket": "WB", "round": "R1", "team_a": "Ella Khan / Sally Vandenberg", "team_b": "Makenna Bowers / Liz Jezioranski", "note": ""}, {"id": 4, "bracket": "WB", "round": "R1", "team_a": "Olivia Krumpe / Hannah McCarthy", "team_b": "Morgane George / Erin Mcclanahan", "note": ""}, {"id": 5, "bracket": "WB", "round": "R1", "team_a": "Aliana Espinoza / Anne Lauder", "team_b": "Sierra Sanders / Kelly O\u2019keefe", "note": ""}, {"id": 6, "bracket": "WB", "round": "R1", "team_a": "Shannon Reilly / Jamie Briggs", "team_b": "Cynthia Sheng / Kathryn Deist", "note": ""}, {"id": 7, "bracket": "WB", "round": "R1", "team_a": "Alexandra Martin / Mallory Lewis", "team_b": "Nicole Dimond / Joyce Cagas", "note": ""}, {"id": 8, "bracket": "WB", "round": "R1", "team_a": "Denali Douglas / Alex Marquis", "team_b": "Imani Gabrielle Hudson / Tamara Leslie", "note": ""}, {"id": 9, "bracket": "WB", "round": "R2", "team_a": "M1 Winner", "team_b": "M2 Winner", "note": ""}, {"id": 10, "bracket": "WB", "round": "R2", "team_a": "M3 Winner", "team_b": "M4 Winner", "note": ""}, {"id": 11, "bracket": "WB", "round": "R2", "team_a": "M5 Winner", "team_b": "M6 Winner", "note": ""}, {"id": 12, "bracket": "WB", "round": "R2", "team_a": "M7 Winner", "team_b": "M8 Winner", "note": ""}, {"id": 13, "bracket": "WB", "round": "R3", "team_a": "M9 Winner", "team_b": "M10 Winner", "note": ""}, {"id": 14, "bracket": "WB", "round": "R3", "team_a": "M11 Winner", "team_b": "M12 Winner", "note": ""}, {"id": 15, "bracket": "WB", "round": "R4", "team_a": "M13 Winner", "team_b": "M14 Winner", "note": ""}, {"id": 16, "bracket": "LB", "round": "R1", "team_a": "M1 Loser", "team_b": "M2 Loser", "note": ""}, {"id": 17, "bracket": "LB", "round": "R1", "team_a": "M3 Loser", "team_b": "M4 Loser", "note": ""}, {"id": 18, "bracket": "LB", "round": "R1", "team_a": "M5 Loser", "team_b": "M6 Loser", "note": ""}, {"id": 19, "bracket": "LB", "round": "R1", "team_a": "M7 Loser", "team_b": "M8 Loser", "note": ""}, {"id": 20, "bracket": "LB", "round": "R2", "team_a": "M16 Winner", "team_b": "M12 Loser", "note": ""}, {"id": 21, "bracket": "LB", "round": "R2", "team_a": "M17 Winner", "team_b": "M11 Loser", "note": ""}, {"id": 22, "bracket": "LB", "round": "R2", "team_a": "M18 Winner", "team_b": "M10 Loser", "note": ""}, {"id": 23, "bracket": "LB", "round": "R2", "team_a": "M19 Winner", "team_b": "M9 Loser", "note": ""}, {"id": 24, "bracket": "LB", "round": "R3", "team_a": "M20 Winner", "team_b": "M21 Winner", "note": ""}, {"id": 25, "bracket": "LB", "round": "R3", "team_a": "M22 Winner", "team_b": "M23 Winner", "note": ""}, {"id": 26, "bracket": "LB", "round": "R4", "team_a": "M24 Winner", "team_b": "M14 Loser", "note": ""}, {"id": 27, "bracket": "LB", "round": "R4", "team_a": "M25 Winner", "team_b": "M13 Loser", "note": ""}, {"id": 28, "bracket": "LB", "round": "R5", "team_a": "M26 Winner", "team_b": "M27 Winner", "note": ""}, {"id": 29, "bracket": "LB", "round": "Final", "team_a": "M28 Winner", "team_b": "M15 Loser", "note": ""}, {"id": 30, "bracket": "GF", "round": "Grand Final", "team_a": "M15 Winner", "team_b": "M29 Winner", "note": ""}];
+const SLUG    = 'womens-b-bb';
 const LS_KEY  = 'winners_womens-b-bbb794fc1d';
+// Shared results live at a JSON path on a Firebase Realtime Database.
+// '' = per-browser localStorage only (no sharing).
+const DB_BASE = '';
+const REMOTE  = DB_BASE
+  ? (DB_BASE.endsWith('/') ? DB_BASE.slice(0, -1) : DB_BASE) + '/brackets/' + SLUG + '.json'
+  : '';
 
 // winner[matchId] = 'a' | 'b' | null
 let winner = {};
 
-function loadWinners() {
+function loadLocal() {
   try { winner = JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch(e) { winner = {}; }
 }
-function saveWinners() {
+function saveLocal() {
   try { localStorage.setItem(LS_KEY, JSON.stringify(winner)); } catch(e) {}
+}
+
+// Pull shared results; re-render only if they changed (polled for live updates).
+async function pull() {
+  if (!REMOTE) return;
+  try {
+    const r = await fetch(REMOTE, {cache: 'no-store'});
+    const next = (await r.json()) || {};
+    if (JSON.stringify(next) !== JSON.stringify(winner)) { winner = next; saveLocal(); render(); }
+  } catch(e) { /* offline: keep the cached copy */ }
+}
+// Write current results back to the shared JSON (and cache locally).
+async function push() {
+  saveLocal();
+  if (!REMOTE) return;
+  try { await fetch(REMOTE, {method: 'PUT', body: JSON.stringify(winner)}); } catch(e) {}
 }
 
 function parseRef(s) {
@@ -224,20 +247,22 @@ document.getElementById('bracket').addEventListener('click', e => {
   if (!btn) return;
   const id = +btn.dataset.id, side = btn.dataset.side;
   winner[id] = winner[id] === side ? null : side;
-  saveWinners();
   render();
+  push();
 });
 
 document.getElementById('btn-print').addEventListener('click', () => window.print());
 document.getElementById('btn-clear').addEventListener('click', () => {
-  if (!confirm('Reset all results?')) return;
+  if (!confirm('Reset all results' + (REMOTE ? ' for everyone' : '') + '?')) return;
   winner = {};
-  try { localStorage.removeItem(LS_KEY); } catch(e) {}
   render();
+  push();
 });
 
-loadWinners();
+loadLocal();       // instant paint from the cached copy
 render();
+pull();            // then sync from the shared JSON
+if (REMOTE) setInterval(pull, 5000);   // pick up others' updates over time
 // Re-layout once the web font loads (card heights change → connector accuracy).
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(render);
 </script></body></html>

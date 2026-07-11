@@ -51,6 +51,12 @@ def newest_csv():
 # halves and they only meet late (e.g. the two Open teams end up seeds 1 & 2).
 LEVEL_RANK = {"Open": 0, "A": 1, "BB": 2, "B": 3}
 
+# Shared results across everyone: paste your Firebase Realtime Database URL here
+# (e.g. "https://your-project-default-rtdb.firebaseio.com"). With the DB's rules
+# open, any viewer's pick writes to a JSON path and all pages poll it for live
+# updates. Leave "" to use per-browser localStorage only.
+DB_URL = ""
+
 
 def load_teams_from_csv(path):
     """Build {slug: [team_name, ...]} from a registration export.
@@ -136,16 +142,39 @@ footer{text-align:center;margin-top:40px;font-size:.72rem;color:var(--mut)}
 
 <script>
 const MATCHES = __MATCHES_JSON__;
+const SLUG    = '__SLUG__';
 const LS_KEY  = 'winners___SLUG____TEAMS_HASH__';
+// Shared results live at a JSON path on a Firebase Realtime Database.
+// '' = per-browser localStorage only (no sharing).
+const DB_BASE = '__DB_URL__';
+const REMOTE  = DB_BASE
+  ? (DB_BASE.endsWith('/') ? DB_BASE.slice(0, -1) : DB_BASE) + '/brackets/' + SLUG + '.json'
+  : '';
 
 // winner[matchId] = 'a' | 'b' | null
 let winner = {};
 
-function loadWinners() {
+function loadLocal() {
   try { winner = JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch(e) { winner = {}; }
 }
-function saveWinners() {
+function saveLocal() {
   try { localStorage.setItem(LS_KEY, JSON.stringify(winner)); } catch(e) {}
+}
+
+// Pull shared results; re-render only if they changed (polled for live updates).
+async function pull() {
+  if (!REMOTE) return;
+  try {
+    const r = await fetch(REMOTE, {cache: 'no-store'});
+    const next = (await r.json()) || {};
+    if (JSON.stringify(next) !== JSON.stringify(winner)) { winner = next; saveLocal(); render(); }
+  } catch(e) { /* offline: keep the cached copy */ }
+}
+// Write current results back to the shared JSON (and cache locally).
+async function push() {
+  saveLocal();
+  if (!REMOTE) return;
+  try { await fetch(REMOTE, {method: 'PUT', body: JSON.stringify(winner)}); } catch(e) {}
 }
 
 function parseRef(s) {
@@ -302,20 +331,22 @@ document.getElementById('bracket').addEventListener('click', e => {
   if (!btn) return;
   const id = +btn.dataset.id, side = btn.dataset.side;
   winner[id] = winner[id] === side ? null : side;
-  saveWinners();
   render();
+  push();
 });
 
 document.getElementById('btn-print').addEventListener('click', () => window.print());
 document.getElementById('btn-clear').addEventListener('click', () => {
-  if (!confirm('Reset all results?')) return;
+  if (!confirm('Reset all results' + (REMOTE ? ' for everyone' : '') + '?')) return;
   winner = {};
-  try { localStorage.removeItem(LS_KEY); } catch(e) {}
   render();
+  push();
 });
 
-loadWinners();
+loadLocal();       // instant paint from the cached copy
 render();
+pull();            // then sync from the shared JSON
+if (REMOTE) setInterval(pull, 5000);   // pick up others' updates over time
 // Re-layout once the web font loads (card heights change → connector accuracy).
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(render);
 </script></body></html>
@@ -423,6 +454,7 @@ def generate(csv_path=None):
             .replace("__SLUG__", slug)
             .replace("__MATCHES_JSON__", json.dumps(matches_out))
             .replace("__TEAMS_HASH__", teams_hash)
+            .replace("__DB_URL__", DB_URL)
             .replace("__YEAR__", str(year))
         )
         out_path = os.path.join(DOCS_DIR, f"{slug}.html")

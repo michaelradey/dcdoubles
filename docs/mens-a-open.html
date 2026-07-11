@@ -58,16 +58,39 @@ footer{text-align:center;margin-top:40px;font-size:.72rem;color:var(--mut)}
 
 <script>
 const MATCHES = [{"id": 1, "bracket": "WB", "round": "R1", "team_a": "Lane Turner / Pat Grindel", "team_b": "Billy Mendsaikhan / William Hubbert", "note": ""}, {"id": 2, "bracket": "WB", "round": "R1", "team_a": "Jason Keung / Kenny Barros", "team_b": "Jake Rosenheim / Trevor Cook", "note": ""}, {"id": 3, "bracket": "WB", "round": "R1", "team_a": "Joaquim Cariaso / Eye Ra", "team_b": "jacob park / kevion luo", "note": ""}, {"id": 4, "bracket": "WB", "round": "R1", "team_a": "Sahil Patel / Abenazer Bayou", "team_b": "Aaron Ahmadi / Luke O\u2019Neil", "note": ""}, {"id": 5, "bracket": "WB", "round": "R2", "team_a": "M1 Winner", "team_b": "M2 Winner", "note": ""}, {"id": 6, "bracket": "WB", "round": "R2", "team_a": "M3 Winner", "team_b": "M4 Winner", "note": ""}, {"id": 7, "bracket": "WB", "round": "R3", "team_a": "M5 Winner", "team_b": "M6 Winner", "note": ""}, {"id": 8, "bracket": "LB", "round": "R1", "team_a": "M1 Loser", "team_b": "M2 Loser", "note": ""}, {"id": 9, "bracket": "LB", "round": "R1", "team_a": "M3 Loser", "team_b": "M4 Loser", "note": ""}, {"id": 10, "bracket": "LB", "round": "R2", "team_a": "M8 Winner", "team_b": "M6 Loser", "note": ""}, {"id": 11, "bracket": "LB", "round": "R2", "team_a": "M9 Winner", "team_b": "M5 Loser", "note": ""}, {"id": 12, "bracket": "LB", "round": "R3", "team_a": "M10 Winner", "team_b": "M11 Winner", "note": ""}, {"id": 13, "bracket": "LB", "round": "Final", "team_a": "M12 Winner", "team_b": "M7 Loser", "note": ""}, {"id": 14, "bracket": "GF", "round": "Grand Final", "team_a": "M7 Winner", "team_b": "M13 Winner", "note": ""}];
+const SLUG    = 'mens-a-open';
 const LS_KEY  = 'winners_mens-a-opend4aec60c';
+// Shared results live at a JSON path on a Firebase Realtime Database.
+// '' = per-browser localStorage only (no sharing).
+const DB_BASE = '';
+const REMOTE  = DB_BASE
+  ? (DB_BASE.endsWith('/') ? DB_BASE.slice(0, -1) : DB_BASE) + '/brackets/' + SLUG + '.json'
+  : '';
 
 // winner[matchId] = 'a' | 'b' | null
 let winner = {};
 
-function loadWinners() {
+function loadLocal() {
   try { winner = JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch(e) { winner = {}; }
 }
-function saveWinners() {
+function saveLocal() {
   try { localStorage.setItem(LS_KEY, JSON.stringify(winner)); } catch(e) {}
+}
+
+// Pull shared results; re-render only if they changed (polled for live updates).
+async function pull() {
+  if (!REMOTE) return;
+  try {
+    const r = await fetch(REMOTE, {cache: 'no-store'});
+    const next = (await r.json()) || {};
+    if (JSON.stringify(next) !== JSON.stringify(winner)) { winner = next; saveLocal(); render(); }
+  } catch(e) { /* offline: keep the cached copy */ }
+}
+// Write current results back to the shared JSON (and cache locally).
+async function push() {
+  saveLocal();
+  if (!REMOTE) return;
+  try { await fetch(REMOTE, {method: 'PUT', body: JSON.stringify(winner)}); } catch(e) {}
 }
 
 function parseRef(s) {
@@ -224,20 +247,22 @@ document.getElementById('bracket').addEventListener('click', e => {
   if (!btn) return;
   const id = +btn.dataset.id, side = btn.dataset.side;
   winner[id] = winner[id] === side ? null : side;
-  saveWinners();
   render();
+  push();
 });
 
 document.getElementById('btn-print').addEventListener('click', () => window.print());
 document.getElementById('btn-clear').addEventListener('click', () => {
-  if (!confirm('Reset all results?')) return;
+  if (!confirm('Reset all results' + (REMOTE ? ' for everyone' : '') + '?')) return;
   winner = {};
-  try { localStorage.removeItem(LS_KEY); } catch(e) {}
   render();
+  push();
 });
 
-loadWinners();
+loadLocal();       // instant paint from the cached copy
 render();
+pull();            // then sync from the shared JSON
+if (REMOTE) setInterval(pull, 5000);   // pick up others' updates over time
 // Re-layout once the web font loads (card heights change → connector accuracy).
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(render);
 </script></body></html>
